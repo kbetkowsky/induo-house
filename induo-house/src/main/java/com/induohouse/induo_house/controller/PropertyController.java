@@ -8,6 +8,7 @@ import com.induohouse.induo_house.entity.Property;
 import com.induohouse.induo_house.service.FileStorageService;
 import com.induohouse.induo_house.service.PropertyService;
 import jakarta.validation.Valid;
+import org.apache.tomcat.util.net.openssl.ciphers.Authentication;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -98,12 +99,18 @@ public class PropertyController {
         }
     }
 
-    @PostMapping("create-property")
-    public ResponseEntity<PropertyResponse> createProperty(@RequestBody @Valid CreatePropertyRequest request, Long userId) {
+    /*
+    @PostMapping
+    public ResponseEntity<PropertyResponse> createProperty(
+
+            @RequestBody @Valid CreatePropertyRequest request,
+            Authentication authentication
+    ) {
+        Long userId = ((CustomUser) authentication.getPrincipal()).getId();
         PropertyResponse propertyResponse = propertyService.create(request, userId);
         return ResponseEntity.status(201).body(propertyResponse);
     }
-
+ */
 
 
 
