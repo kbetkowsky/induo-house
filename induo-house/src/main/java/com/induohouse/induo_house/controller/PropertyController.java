@@ -1,27 +1,36 @@
 package com.induohouse.induo_house.controller;
 
+import com.induohouse.induo_house.dto.request.CreatePropertyRequest;
+import com.induohouse.induo_house.dto.request.UpdatePropertyRequest;
 import com.induohouse.induo_house.dto.response.PropertyListResponse;
 import com.induohouse.induo_house.dto.response.PropertyResponse;
 import com.induohouse.induo_house.entity.Property;
+import com.induohouse.induo_house.service.FileStorageService;
 import com.induohouse.induo_house.service.PropertyService;
+import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/properties")
 public class PropertyController {
 
     private final PropertyService propertyService;
+    private final FileStorageService fileStorageService;
 
-    public PropertyController(PropertyService propertyService) {
+    public PropertyController(PropertyService propertyService, FileStorageService fileStorageService) {
         this.propertyService = propertyService;
+        this.fileStorageService = fileStorageService;
     }
 
     @GetMapping("{id}")
@@ -77,4 +86,25 @@ public class PropertyController {
         Page<PropertyListResponse> responses = propertyService.getByPriceRange(minPrice, maxPrice, pageable);
         return ResponseEntity.ok(responses);
     }
+
+    @PostMapping("/upload-image")
+    public ResponseEntity<Map<String, String>> uploadImage(@RequestParam("file") MultipartFile file) {
+        try {
+            String imageUrl = fileStorageService.uploadFile(file);
+            return ResponseEntity.ok(Map.of("url", imageUrl));
+        } catch (IOException e) {
+            return ResponseEntity.status(500)
+                    .body(Map.of("error", "Upload failed: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping("create-property")
+    public ResponseEntity<PropertyResponse> createProperty(@RequestBody @Valid CreatePropertyRequest request, Long userId) {
+        PropertyResponse propertyResponse = propertyService.create(request, userId);
+        return ResponseEntity.status(201).body(propertyResponse);
+    }
+
+
+
+
 }

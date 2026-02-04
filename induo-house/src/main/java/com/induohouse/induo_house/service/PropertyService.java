@@ -87,7 +87,7 @@ public class PropertyService {
         Property property = propertyRepository.findById(propertyId)
                 .orElseThrow(() -> new RuntimeException("Nie ma takiego ogloszenia"));
 
-        if (property.getUser().getId().equals(userId)) {
+        if (!property.getUser().getId().equals(userId)) {
             throw new RuntimeException("nie jestes autorem ogloszenia");
         }
         if (request.getTitle() != null) property.setTitle(request.getTitle());

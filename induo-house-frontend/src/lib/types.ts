@@ -1,55 +1,45 @@
 export interface Property {
-    id: number;
-title: string;
-description: string;
-price: number;
-address: string;
-city: string;
-area: number;
-rooms: number;
-bathrooms?: number;
-imageUrl?: string;
-status?: string;
-createdAt: string;
-updatedAt?: string;
-owner: PropertyOwner;
-}
-
-export interface PropertyOwner {
-id: number;
-username: string;
-email: string;
+  id: number;
+  title: string;
+  area: number;
+  city: string;
+  numberOfRooms: number | null;
+  price: number;
+  propertyType: 'APARTMENT' | 'HOUSE' | 'LAND';
+  status: 'ACTIVE' | 'SOLD' | 'RENTED';
+  transactionType: 'SALE' | 'RENT';
+  ownerFirstName: string;
+  ownerLastName: string;
+  ownerPhoneNumber: string;
 }
 
 export interface CreatePropertyRequest {
-title: string;
-description: string;
-price: number;
-address: string;
-city: string;
-area: number;
-rooms: number;
-bathrooms?: number;
+  title: string;
+  area: number;
+  city: string;
+  numberOfRooms?: number;
+  price: number;
+  propertyType: 'APARTMENT' | 'HOUSE' | 'LAND';
+  transactionType: 'SALE' | 'RENT';
 }
 
 export interface UpdatePropertyRequest {
-title?: string;
-description?: string;
-price?: number;
-address?: string;
-city?: string;
-area?: number;
-rooms?: number;
-bathrooms?: number;
+  title?: string;
+  area?: number;
+  city?: string;
+  numberOfRooms?: number;
+  price?: number;
+  propertyType?: 'APARTMENT' | 'HOUSE' | 'LAND';
+  transactionType?: 'SALE' | 'RENT';
 }
 
 export interface LoginRequest {
-username: string;
-password: string;
+  username: string;
+  password: string;
 }
 
 export interface LoginResponse {
-token: string;
-username: string;
-email: string;
+  token: string;
+  username: string;
+  email: string;
 }
