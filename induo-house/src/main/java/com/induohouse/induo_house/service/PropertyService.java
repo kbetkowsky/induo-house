@@ -9,7 +9,10 @@ import com.induohouse.induo_house.entity.User;
 import com.induohouse.induo_house.mapper.PropertyMapper;
 import com.induohouse.induo_house.repository.PropertyRepository;
 import com.induohouse.induo_house.repository.UserRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Repository;
 import org.springframework.stereotype.Service;
 import org.springframework.data.domain.PageRequest;
@@ -25,6 +28,7 @@ import java.util.Optional;
     DOPRACOWAC WALIDACJE SORTOWANIA
  */
 @Service
+@Slf4j
 public class PropertyService {
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
@@ -66,9 +70,16 @@ public class PropertyService {
         }
 
 
-    public void deletePropertyById(Long id) {
-        getById(id);
-        propertyRepository.deleteById(id);
+    public void delete(Long userId, Long propertyId) {
+        Property property = propertyRepository.findById(propertyId)
+                .orElseThrow(() -> new RuntimeException("Nie ma takiego ogloszenia"));
+
+        if (!property.getUser().getId().equals(userId)) {
+            throw new RuntimeException("Mozesz kasowac tylko swoje ogloszenia");
+        }
+
+        propertyRepository.delete(property);
+        log.info("Property {} deleted by user {}", propertyId, userId);
     }
 
     public PropertyResponse create(CreatePropertyRequest request, Long userId) {
@@ -81,14 +92,13 @@ public class PropertyService {
         return propertyMapper.toResponse(saved);
     }
 
-    public PropertyResponse update(UpdatePropertyRequest request, Long userId, Long propertyId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Nie ma takiego usera"));
+    public PropertyResponse updatePatch(UpdatePropertyRequest request, Long userId, Long propertyId) {
+
         Property property = propertyRepository.findById(propertyId)
                 .orElseThrow(() -> new RuntimeException("Nie ma takiego ogloszenia"));
 
         if (!property.getUser().getId().equals(userId)) {
-            throw new RuntimeException("nie jestes autorem ogloszenia");
+            throw new RuntimeException("Mozesz edytowac tylko wlasne ogloszenia");
         }
         if (request.getTitle() != null) property.setTitle(request.getTitle());
         if (request.getDescription() != null) property.setDescription(request.getDescription());
@@ -102,6 +112,28 @@ public class PropertyService {
         if (request.getTotalFloors() != null) property.setTotalFloors(request.getTotalFloors());
         if (request.getTransactionType() != null) property.setTransactionType(request.getTransactionType());
         if (request.getPropertyType() != null) property.setPropertyType(request.getPropertyType());
+
+        Property saved = propertyRepository.save(property);
+        return propertyMapper.toResponse(saved);
+    }
+
+    public PropertyResponse update(UpdatePropertyRequest request, Long userId, Long propertyId) {
+        Property property = propertyRepository.findById(propertyId)
+                .orElseThrow(() -> new RuntimeException("Nie ma takiego ogloszenia"));
+
+        if (!property.getUser().getId().equals(userId)) {
+            throw new RuntimeException("Mozesz edytowac tylko swoje ogloszenie");
+        }
+
+        property.setTitle(request.getTitle());
+        property.setDescription(request.getDescription());
+        property.setPrice(request.getPrice());
+        property.setCity(request.getCity());
+        property.setArea(request.getArea());
+        property.setPropertyType(request.getPropertyType());
+        property.setArea(request.getArea());
+        property.setNumberOfRooms(request.getNumberOfRooms());
+        property.setFloor(request.getFloor());
 
         Property saved = propertyRepository.save(property);
         return propertyMapper.toResponse(saved);
