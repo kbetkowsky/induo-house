@@ -1,5 +1,6 @@
 package com.induohouse.induo_house;
 
+import com.induohouse.induo_house.dto.request.CreatePropertyRequest;
 import com.induohouse.induo_house.dto.response.PropertyResponse;
 import com.induohouse.induo_house.entity.Property;
 import com.induohouse.induo_house.entity.User;
@@ -154,5 +155,83 @@ public class PropertyServiceTest {
         );
         assertEquals("Mozesz kasowac tylko swoje ogloszenia", exception.getMessage());
         verify(propertyRepository, never()).delete(any());
+    }
+
+    private CreatePropertyRequest createTestRequest() {
+        CreatePropertyRequest request = new CreatePropertyRequest();
+        request.setTitle("Nowe mieszkanie");
+        request.setDescription("Piękne mieszkanie w centrum");
+        request.setPrice(new BigDecimal("600000"));
+        request.setArea(new BigDecimal("65"));
+        request.setCity("Kraków");
+        request.setStreet("Floriańska");
+        request.setPostalCode("31-000");
+        request.setNumberOfRooms(4);
+        request.setFloor(3);
+        request.setTotalFloors(8);
+        request.setTransactionType("SPRZEDAŻ");
+        request.setPropertyType("MIESZKANIE");
+        return request;
+    }
+
+    @Test
+    void create_ShouldCreateProperty_WhenUserExists() {
+        //GIVEN
+        Long userId = 1L;
+        CreatePropertyRequest request = createTestRequest();
+
+        Property mappedProperty = new Property();
+        mappedProperty.setTitle("Nowe mieszkanie");
+        mappedProperty.setPrice(new BigDecimal("600000"));
+
+        Property savedProperty = new Property();
+        savedProperty.setId(99L);
+        savedProperty.setTitle("Nowe mieszkanie");
+        savedProperty.setPrice(new BigDecimal("600000"));
+        savedProperty.setUser(testUser);
+
+        when(userRepository.findById(userId))
+                .thenReturn(Optional.of(testUser));
+        when(propertyMapper.toEntity(request))
+                .thenReturn(mappedProperty);
+        when(propertyRepository.save(mappedProperty))
+                .thenReturn(savedProperty);
+        when(propertyMapper.toResponse(savedProperty))
+                .thenReturn(testResponse);
+
+        //WHEN
+        PropertyResponse result = propertyService.create(request, userId);
+
+        //THEN
+        assertNotNull(result);
+        assertEquals(1L, result.getId());
+        assertEquals("Testowe mieszkanie", result.getTitle());
+
+        verify(userRepository, times(1)).findById(userId);
+        verify(propertyMapper, times(1)).toEntity(request);
+        verify(propertyRepository, times(1)).save(mappedProperty);
+        verify(propertyMapper, times(1)).toResponse(savedProperty);
+    }
+
+    @Test
+    void create_ShouldThrowException_WhenUserNotFound() {
+        //GIVEN
+        Long nonExistentUserId = 999L;
+        CreatePropertyRequest request = createTestRequest();
+
+        when(userRepository.findById(nonExistentUserId))
+                .thenReturn(Optional.empty());
+
+        //WHEN & THEN
+        RuntimeException exception = assertThrows(
+                RuntimeException.class,
+                () -> propertyService.create(request, nonExistentUserId)
+        );
+
+        assertEquals("Nie ma takiego usera", exception.getMessage());
+
+        verify(propertyMapper, never()).toEntity(any());
+        verify(propertyRepository, never()).save(any());
+        verify(propertyMapper, never()).toResponse(any());
     }
 }
