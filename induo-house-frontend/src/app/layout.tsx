@@ -1,27 +1,28 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import Navbar from "@/components/Navbar";
+import { Providers } from "@/components/Providers";
+import { Toaster } from 'react-hot-toast';
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "InduoHouse - Real Estate Management",
-  description: "Zarządzanie nieruchomościami",
+  title: "InduoHouse - Portal Nieruchomości",
+  description: "Znajdź wymarzoną nieruchomość",
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="pl">
       <body className={inter.className}>
-        <Navbar />
-        <main className="min-h-screen bg-gray-50">
+        <Providers>
           {children}
-        </main>
+          <Toaster position="top-right" />
+        </Providers>
       </body>
     </html>
   );
