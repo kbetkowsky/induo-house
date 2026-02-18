@@ -3,7 +3,6 @@
 import { Property } from '@/types';
 import Link from 'next/link';
 import { MapPin, Bed, Bath, Square } from 'lucide-react';
-import Image from 'next/image';
 
 interface PropertyCardProps {
   property: Property;
@@ -32,13 +31,11 @@ export function PropertyCard({ property }: PropertyCardProps) {
     <Link href={`/properties/${property.id}`}>
       <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 cursor-pointer h-full flex flex-col">
         <div className="relative h-48 w-full bg-gray-200">
-          {property.imageUrl ? (
-            <Image
-              src={property.imageUrl}
+          {property.thumbnailUrl ? (
+            <img
+              src={property.thumbnailUrl}
               alt={property.title}
-              fill
-              className="object-cover"
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              className="w-full h-full object-cover"
             />
           ) : (
             <div className="flex items-center justify-center h-full text-gray-400">
@@ -67,16 +64,10 @@ export function PropertyCard({ property }: PropertyCardProps) {
                 <span>{property.area} m²</span>
               </div>
             )}
-            {property.bedrooms > 0 && (
+            {property.numberOfRooms && property.numberOfRooms > 0 && (
               <div className="flex items-center">
                 <Bed className="h-4 w-4 mr-1" />
-                <span>{property.bedrooms}</span>
-              </div>
-            )}
-            {property.bathrooms > 0 && (
-              <div className="flex items-center">
-                <Bath className="h-4 w-4 mr-1" />
-                <span>{property.bathrooms}</span>
+                <span>{property.numberOfRooms} pok.</span>
               </div>
             )}
           </div>

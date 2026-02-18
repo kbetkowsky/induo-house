@@ -9,7 +9,7 @@ export interface Property {
   area: number;
   bedrooms: number;
   bathrooms: number;
-  imageUrl: string;
+  thumbnailUrl: string | null;
   images?: string[];
   createdAt: string;
   userId: number;
