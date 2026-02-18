@@ -55,4 +55,7 @@ public class CreatePropertyRequest {
     @Pattern(regexp = "APARTMENT|HOUSE|LAND", message = "Typ nieruchomości: APARTMENT, HOUSE lub LAND")
     private String propertyType;
 
+    @NotBlank(message = "Nieruchomosc wymaga zdjec")
+    private String imageUrl;
+
 }

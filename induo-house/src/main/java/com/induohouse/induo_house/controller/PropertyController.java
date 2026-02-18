@@ -1,5 +1,6 @@
 package com.induohouse.induo_house.controller;
 
+import com.induohouse.induo_house.dto.PageResponse;
 import com.induohouse.induo_house.dto.request.CreatePropertyRequest;
 import com.induohouse.induo_house.dto.request.UpdatePropertyRequest;
 import com.induohouse.induo_house.dto.response.PropertyListResponse;
@@ -10,7 +11,7 @@ import com.induohouse.induo_house.service.FileStorageService;
 import com.induohouse.induo_house.service.PropertyService;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.tomcat.util.net.openssl.ciphers.Authentication;
+import org.springframework.security.core.Authentication;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -50,8 +51,11 @@ public class PropertyController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<PropertyListResponse>> getAll(Pageable pageable) {
-        Page<PropertyListResponse> response = propertyService.getAll(pageable);
+    public ResponseEntity<PageResponse<PropertyListResponse>> getAll(Pageable pageable) {
+        log.info("Get all properties - page: {}, size: {}", pageable.getPageNumber(), pageable.getPageSize());
+
+        Page<PropertyListResponse> propertiesPage = propertyService.getAll(pageable);
+        PageResponse<PropertyListResponse> response = PageResponse.of(propertiesPage);
         return ResponseEntity.ok(response);
     }
 
@@ -95,9 +99,10 @@ public class PropertyController {
 
     @GetMapping("/my")
     public ResponseEntity<Page<PropertyListResponse>> getMyProperties(
-            @AuthenticationPrincipal User currentUser,
+            Authentication authentication,
             Pageable pageable
-            ) {
+    ) {
+        User currentUser = (User) authentication.getPrincipal();  // ← Cast
         log.info("User {} fetching their properties", currentUser.getEmail());
         Page<PropertyListResponse> response = propertyService.getByUserId(currentUser.getId(), pageable);
         return ResponseEntity.ok(response);
@@ -106,9 +111,10 @@ public class PropertyController {
     @PostMapping
     public ResponseEntity<PropertyResponse> createProperty(
             @Valid @RequestBody CreatePropertyRequest request,
-            @AuthenticationPrincipal User currentUser
+            Authentication authentication
     ) {
-        log.info("User {} create new property: {}", currentUser.getEmail(), request.getTitle());
+        User currentUser = (User) authentication.getPrincipal();
+        log.info("User {} creating new property: {}", currentUser.getEmail(), request.getTitle());
         PropertyResponse response = propertyService.create(request, currentUser.getId());
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -117,8 +123,9 @@ public class PropertyController {
     public ResponseEntity<PropertyResponse> patchProperty(
             @PathVariable Long id,
             @Valid @RequestBody UpdatePropertyRequest request,
-            @AuthenticationPrincipal User currentUser
+            Authentication authentication
     ) {
+        User currentUser = (User) authentication.getPrincipal();
         PropertyResponse response = propertyService.updatePatch(request, id, currentUser.getId());
         return ResponseEntity.ok(response);
     }
@@ -126,9 +133,10 @@ public class PropertyController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteProperty(
             @PathVariable Long id,
-            @AuthenticationPrincipal User currentUser
+            Authentication authentication
     ) {
         try {
+            User currentUser = (User) authentication.getPrincipal();
             propertyService.delete(id, currentUser.getId());
             return ResponseEntity.noContent().build();
         } catch (RuntimeException e) {
@@ -137,12 +145,14 @@ public class PropertyController {
         }
     }
 
+
     @PostMapping("/upload-image")
     public ResponseEntity<Map<String, String>> uploadImage(
             @RequestParam("file") MultipartFile file,
-            @AuthenticationPrincipal User currentUser
+            Authentication authentication
     ) {
         try {
+            User currentUser = (User) authentication.getPrincipal();
             String imageUrl = fileStorageService.uploadFile(file);
             return ResponseEntity.ok(Map.of("url", imageUrl));
         } catch (IOException e) {
@@ -151,6 +161,7 @@ public class PropertyController {
                     .body(Map.of("error", "Upload failed: " + e.getMessage()));
         }
     }
+
 
 
 

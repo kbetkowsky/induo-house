@@ -3,8 +3,10 @@ package com.induohouse.induo_house.service;
 import com.induohouse.induo_house.dto.auth.AuthResponse;
 import com.induohouse.induo_house.dto.auth.LoginRequest;
 import com.induohouse.induo_house.dto.auth.RegisterRequest;
+import com.induohouse.induo_house.dto.user.UserDto;
 import com.induohouse.induo_house.entity.User;
 import com.induohouse.induo_house.exception.EmailAlreadyExistsException;
+import com.induohouse.induo_house.exception.UnauthorizedException;
 import com.induohouse.induo_house.exception.UserNotFoundException;
 import com.induohouse.induo_house.repository.UserRepository;
 import com.induohouse.induo_house.security.JwtService;
@@ -12,6 +14,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -86,6 +90,37 @@ public class AuthService {
                 .token(jwtToken)
                 .refreshToken(refreshToken)
                 .email(user.getEmail())
+                .build();
+    }
+
+    public UserDto getCurrentUser() {
+        log.debug("Getting current user from Security Context");
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !authentication.isAuthenticated() ||
+                authentication.getPrincipal().equals("anonymousUser")) {
+            log.error("User not authenticated - no valid security context");
+            throw new UnauthorizedException("User not authenticated");
+        }
+
+        String email = authentication.getName();
+        log.debug("Current authenticated user email: {}", email);
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> {
+                    log.error("User not found in database: {}", email);
+                    return new UserNotFoundException("User not found: " + email);
+                });
+
+        log.info("Successfully retrieved user data: id={}, email={}", user.getId(), user.getEmail());
+
+        return UserDto.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .phoneNumber(user.getPhoneNumber())
                 .build();
     }
 }

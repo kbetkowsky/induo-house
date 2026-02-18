@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+
+//DO USUNIECIA KLASA TYLKO DO TESTOW
 @Data
 @Builder
 @NoArgsConstructor

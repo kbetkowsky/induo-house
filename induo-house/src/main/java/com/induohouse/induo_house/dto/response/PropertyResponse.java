@@ -23,6 +23,7 @@ public class PropertyResponse {
     private String transactionType;
     private String propertyType;
     private String status;
+    private String imageUrl;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private PropertyOwnerResponse owner;
