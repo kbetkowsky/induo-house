@@ -5,6 +5,7 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Setter
@@ -23,7 +24,7 @@ public class PropertyResponse {
     private String transactionType;
     private String propertyType;
     private String status;
-    private String imageUrl;
+    private List<PropertyImageResponse> images;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private PropertyOwnerResponse owner;

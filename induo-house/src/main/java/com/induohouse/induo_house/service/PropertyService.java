@@ -2,11 +2,14 @@ package com.induohouse.induo_house.service;
 
 import com.induohouse.induo_house.dto.request.CreatePropertyRequest;
 import com.induohouse.induo_house.dto.request.UpdatePropertyRequest;
+import com.induohouse.induo_house.dto.response.PropertyImageResponse;
 import com.induohouse.induo_house.dto.response.PropertyListResponse;
 import com.induohouse.induo_house.dto.response.PropertyResponse;
 import com.induohouse.induo_house.entity.Property;
+import com.induohouse.induo_house.entity.PropertyImage;
 import com.induohouse.induo_house.entity.User;
 import com.induohouse.induo_house.mapper.PropertyMapper;
+import com.induohouse.induo_house.repository.PropertyImageRepository;
 import com.induohouse.induo_house.repository.PropertyRepository;
 import com.induohouse.induo_house.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -18,7 +21,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
@@ -33,17 +38,21 @@ public class PropertyService {
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
     private final PropertyMapper propertyMapper;
+    private final PropertyImageRepository propertyImageRepository;
+    private final FileStorageService fileStorageService;
 
-    public PropertyService(PropertyRepository propertyRepository, UserRepository userRepository, PropertyMapper propertyMapper) {
+    public PropertyService(PropertyRepository propertyRepository, UserRepository userRepository, PropertyMapper propertyMapper, PropertyImageRepository propertyImageRepository, FileStorageService fileStorageService) {
         this.propertyRepository = propertyRepository;
         this.userRepository = userRepository;
         this.propertyMapper = propertyMapper;
+        this.propertyImageRepository = propertyImageRepository;
+        this.fileStorageService = fileStorageService;
     }
 
     public Page<PropertyListResponse> getAll(Pageable pageable) {
 
-       return propertyRepository.findAll(pageable)
-               .map(propertyMapper::toListResponse);
+        return propertyRepository.findAll(pageable)
+                .map(propertyMapper::toListResponse);
     }
 
     public PropertyResponse getById(Long id) {
@@ -51,7 +60,6 @@ public class PropertyService {
                 .orElseThrow(() -> new RuntimeException("Nie znaleziono ogloszenia"));
         return propertyMapper.toResponse(property);
     }
-
 
 
     public Page<PropertyListResponse> getByCity(String city, Pageable pageable) {
@@ -65,9 +73,9 @@ public class PropertyService {
     }
 
     public Page<PropertyListResponse> getByUserId(Long userId, Pageable pageable) {
-            return propertyRepository.findByUserId(userId, pageable)
-                    .map(propertyMapper::toListResponse);
-        }
+        return propertyRepository.findByUserId(userId, pageable)
+                .map(propertyMapper::toListResponse);
+    }
 
 
     public void delete(Long userId, Long propertyId) {
@@ -140,12 +148,69 @@ public class PropertyService {
     }
 
     public Page<PropertyListResponse> getByPriceRange(BigDecimal minPrice, BigDecimal maxPrice,
-    Pageable pageable) {
+                                                      Pageable pageable) {
         return propertyRepository.findByPriceBetween(minPrice, maxPrice, pageable)
                 .map(propertyMapper::toListResponse);
     }
 
+    public PropertyImageResponse addImage(Long propertyId, MultipartFile file, boolean isPrimary, Long userId) throws IOException {
+        Property property = propertyRepository.findById(propertyId)
+                .orElseThrow(() -> new RuntimeException("Nie ma takiego ogloszenia"));
+        if (!property.getUser().getId().equals(userId)) {
+            throw new RuntimeException("Mozesz dodawac zdjecia tylko do swoich ogloszen");
+        }
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            throw new IllegalArgumentException("Dozwolone sa tylko pliki graficzne (jpg, png, webp)");
+        }
+        if (file.getSize() > 5 * 1024 * 1024) {
+            throw new IllegalArgumentException("Plik nie moze byc wiekszy niz 5MB");
+        }
+        if (isPrimary || property.getImages().isEmpty()) {
+            propertyImageRepository.clearPrimaryForProperty(propertyId);
+        }
+        String url = fileStorageService.uploadFile(file);
+        int sortOrder = property.getImages().size();
+        PropertyImage image = new PropertyImage();
+        image.setProperty(property);
+        image.setUrl(url);
+        image.setPrimary(isPrimary || sortOrder == 0);
+        image.setSortOrder(sortOrder);
+        PropertyImage saved = propertyImageRepository.save(image);
+        log.info("Image added to property {} by user {}, isPrimary={}", propertyId, userId, image.isPrimary());
+        PropertyImageResponse response = new PropertyImageResponse();
+        response.setId(saved.getId());
+        response.setUrl(saved.getUrl());
+        response.setPrimary(saved.isPrimary());
+        response.setSortOrder(saved.getSortOrder());
+        return response;
     }
+
+    public void deleteImage(Long propertyId, Long imageId, Long userId) throws IOException {
+        Property property = propertyRepository.findById(propertyId)
+                .orElseThrow(() -> new RuntimeException("Nie ma takiego ogloszenia"));
+        if (!property.getUser().getId().equals(userId)) {
+            throw new RuntimeException("Mozesz usuwac zdjecia tylko ze swoich ogloszen");
+        }
+        PropertyImage image = propertyImageRepository.findById(imageId)
+                .orElseThrow(() -> new RuntimeException("Nie znaleziono zdjecia"));
+        if (!image.getProperty().getId().equals(propertyId)) {
+            throw new RuntimeException("To zdjecie nie nalezy do tego ogloszenia");
+        }
+        fileStorageService.deleteFile(image.getUrl());
+        propertyImageRepository.delete(image);
+        log.info("Image {} deleted from property {} by user {}", imageId, propertyId, userId);
+        if (image.isPrimary()) {
+            propertyImageRepository.findByPropertyIdOrderBySortOrderAsc(propertyId)
+                    .stream()
+                    .findFirst()
+                    .ifPresent(first -> {
+                        first.setPrimary(true);
+                        propertyImageRepository.save(first);
+                    });
+        }
+    }
+}
 
 
 

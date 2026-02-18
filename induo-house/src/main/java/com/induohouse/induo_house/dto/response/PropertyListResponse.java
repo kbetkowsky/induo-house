@@ -17,6 +17,7 @@ public class PropertyListResponse {
     private String transactionType;
     private String propertyType;
     private String status;
+    private String thumbnailUrl;
 
     private String ownerFirstName;
     private String ownerLastName;

@@ -1,11 +1,15 @@
 package com.induohouse.induo_house.mapper;
 
 import com.induohouse.induo_house.dto.request.CreatePropertyRequest;
+import com.induohouse.induo_house.dto.response.PropertyImageResponse;
 import com.induohouse.induo_house.dto.response.PropertyListResponse;
 import com.induohouse.induo_house.dto.response.PropertyOwnerResponse;
 import com.induohouse.induo_house.dto.response.PropertyResponse;
 import com.induohouse.induo_house.entity.Property;
+import com.induohouse.induo_house.entity.PropertyImage;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 @Component
 public class PropertyMapper {
@@ -51,6 +55,16 @@ public class PropertyMapper {
         response.setStatus(property.getStatus());
         response.setCreatedAt(property.getCreatedAt());
         response.setUpdatedAt(property.getUpdatedAt());
+        List<PropertyImageResponse> images = property.getImages().stream()
+                .map(img -> {
+                    PropertyImageResponse ir = new PropertyImageResponse();
+                    ir.setId(img.getId());
+                    ir.setUrl(img.getUrl());
+                    ir.setPrimary(img.isPrimary());
+                    ir.setSortOrder(img.getSortOrder());
+                    return ir;
+                }).toList();
+        response.setImages(images);
 
         PropertyOwnerResponse owner = new PropertyOwnerResponse();
 
@@ -79,6 +93,10 @@ public class PropertyMapper {
         response.setTransactionType(property.getTransactionType());
         response.setPropertyType(property.getPropertyType());
         response.setStatus(property.getStatus());
+        property.getImages().stream()
+                .filter(PropertyImage::isPrimary)
+                .findFirst()
+                .ifPresent(img -> response.setThumbnailUrl(img.getUrl()));
 
         response.setOwnerFirstName(property.getUser().getFirstName());
         response.setOwnerLastName(property.getUser().getLastName());

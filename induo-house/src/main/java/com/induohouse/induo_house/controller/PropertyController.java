@@ -3,6 +3,7 @@ package com.induohouse.induo_house.controller;
 import com.induohouse.induo_house.dto.PageResponse;
 import com.induohouse.induo_house.dto.request.CreatePropertyRequest;
 import com.induohouse.induo_house.dto.request.UpdatePropertyRequest;
+import com.induohouse.induo_house.dto.response.PropertyImageResponse;
 import com.induohouse.induo_house.dto.response.PropertyListResponse;
 import com.induohouse.induo_house.dto.response.PropertyResponse;
 import com.induohouse.induo_house.entity.Property;
@@ -146,21 +147,29 @@ public class PropertyController {
     }
 
 
-    @PostMapping("/upload-image")
-    public ResponseEntity<Map<String, String>> uploadImage(
+    @PostMapping("/{id}/images")
+    public ResponseEntity<PropertyImageResponse> uploadImage(
+            @PathVariable Long id,
             @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "isPrimary", defaultValue = "false") boolean isPrimary,
             Authentication authentication
-    ) {
-        try {
-            User currentUser = (User) authentication.getPrincipal();
-            String imageUrl = fileStorageService.uploadFile(file);
-            return ResponseEntity.ok(Map.of("url", imageUrl));
-        } catch (IOException e) {
-            log.error("Upload failed: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Upload failed: " + e.getMessage()));
-        }
+    ) throws IOException {
+        User currentUser = (User) authentication.getPrincipal();
+        PropertyImageResponse response = propertyService.addImage(id, file, isPrimary, currentUser.getId());
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
+
+    @DeleteMapping("/{propertyId}/images/{imageId}")
+    public ResponseEntity<Void> deleteImage(
+            @PathVariable Long propertyId,
+            @PathVariable Long imageId,
+            Authentication authentication
+    ) throws IOException {
+        User currentUser = (User) authentication.getPrincipal();
+        propertyService.deleteImage(propertyId, imageId, currentUser.getId());
+        return ResponseEntity.noContent().build();
+    }
+
 
 
 
