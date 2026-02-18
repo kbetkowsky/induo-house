@@ -3,11 +3,15 @@ package com.induohouse.induo_house.repository;
 import com.induohouse.induo_house.entity.Property;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface PropertyRepository extends JpaRepository<Property, Long> {
@@ -21,5 +25,12 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
     Page<Property> findByPriceBetween(BigDecimal minPrice, BigDecimal maxPrice, Pageable pageable);
     Page<Property> findByAreaGreaterThanEqual(BigDecimal minArea, Pageable pageable);
     Page<Property> findByCityAndPropertyType(String city, String propertyType, Pageable pageable);
-
+    @Query("SELECT p FROM Property p ORDER BY p.createdAt DESC")
+    Page<Property> findAllPaged(Pageable pageable);
+    @EntityGraph(attributePaths = {"images", "user"})
+    @Query("SELECT p FROM Property p WHERE p.id IN :ids")
+    List<Property> findAllWithImagesByIds(@Param("ids") List<Long> ids);
+    @EntityGraph(attributePaths = {"images", "user"})
+    @Query("SELECT p FROM Property p WHERE p.id = :id")
+    Optional<Property> findByIdWithImages(@Param("id") Long id);
 }

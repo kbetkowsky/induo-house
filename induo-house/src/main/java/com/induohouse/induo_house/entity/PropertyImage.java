@@ -27,7 +27,7 @@ public class PropertyImage {
     @Column(nullable = false, length = 500)
     private String url;
 
-    @Column(nullable = false)
+    @Column(name = "is_primary", nullable = false)
     private boolean isPrimary = false;
 
     @Column(nullable = false)

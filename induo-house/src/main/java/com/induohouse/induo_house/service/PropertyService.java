@@ -26,7 +26,9 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /*
     TRZEBA BEDZIE ZMIENIC UPDATE Z RECZNEGO PATCH KAZDEJ !NULL NA MAPSTRUCT
@@ -50,13 +52,26 @@ public class PropertyService {
     }
 
     public Page<PropertyListResponse> getAll(Pageable pageable) {
+        Page<Property> page = propertyRepository.findAllPaged(pageable);
 
-        return propertyRepository.findAll(pageable)
-                .map(propertyMapper::toListResponse);
+        List<Long> ids = page.getContent().stream()
+                .map(Property::getId)
+                .toList();
+
+        List<Property> fullProperties = propertyRepository.findAllWithImagesByIds(ids);
+
+        Map<Long, Property> propertyMap = fullProperties.stream()
+                .collect(Collectors.toMap(Property::getId, p -> p));
+
+        List<PropertyListResponse> responses = page.getContent().stream()
+                .map(p -> propertyMapper.toListResponse(propertyMap.get(p.getId())))
+                .toList();
+
+        return new PageImpl<>(responses, pageable, page.getTotalElements());
     }
 
     public PropertyResponse getById(Long id) {
-        Property property = propertyRepository.findById(id)
+        Property property = propertyRepository.findByIdWithImages(id)
                 .orElseThrow(() -> new RuntimeException("Nie znaleziono ogloszenia"));
         return propertyMapper.toResponse(property);
     }
