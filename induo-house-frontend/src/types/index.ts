@@ -22,6 +22,7 @@ export interface User {
   firstName?: string;
   lastName?: string;
   phoneNumber?: string;
+  role: 'USER' | 'AGENT' | 'ADMIN';
 }
 
 export interface LoginCredentials {

@@ -2,26 +2,42 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
-import { Toaster } from 'react-hot-toast';
+import { Toaster } from "react-hot-toast";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
-  title: "InduoHouse - Portal Nieruchomości",
-  description: "Znajdź wymarzoną nieruchomość",
+  title: { default: "InduoHouse", template: "%s — InduoHouse" },
+  description: "Ekskluzywne nieruchomości w Polsce. Mieszkania, domy i apartamenty premium.",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pl">
-      <body className={inter.className}>
+    <html lang="pl" className={inter.variable}>
+      <body className="font-sans antialiased bg-[#080b14] text-slate-100">
         <Providers>
           {children}
-          <Toaster position="top-right" />
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              duration: 4000,
+              style: {
+                background: "#0d1117",
+                color: "#f1f5f9",
+                borderRadius: "10px",
+                fontSize: "13px",
+                padding: "12px 16px",
+                border: "1px solid rgba(255,255,255,0.08)",
+                boxShadow: "0 20px 40px rgba(0,0,0,0.5)",
+              },
+              success: { iconTheme: { primary: "#22c55e", secondary: "#0d1117" } },
+              error:   { iconTheme: { primary: "#ef4444", secondary: "#0d1117" } },
+            }}
+          />
         </Providers>
       </body>
     </html>
