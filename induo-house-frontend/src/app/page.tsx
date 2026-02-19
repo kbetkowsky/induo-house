@@ -12,7 +12,6 @@ import {
   TrendingUp, Shield, Zap, ArrowRight, MapPin, Star
 } from 'lucide-react';
 
-// ─── Shared layout helpers ────────────────────────────────────────────────────
 const PAGE: CSSProperties = {
   width: '100%',
   maxWidth: '100vw',
@@ -37,7 +36,6 @@ const INNER: CSSProperties = {
   boxSizing: 'border-box',
 };
 
-// ─── Skeleton ─────────────────────────────────────────────────────────────────
 function SkeletonCard() {
   return (
     <div style={{ borderRadius: 16, border: '1px solid rgba(255,255,255,0.06)', background: '#0f1623', overflow: 'hidden' }}>
@@ -52,29 +50,63 @@ function SkeletonCard() {
   );
 }
 
-// ─── Data ─────────────────────────────────────────────────────────────────────
 const STATS = [
-  { value: '2 400+', label: 'Aktywnych ofert', icon: Building2 },
-  { value: '32',     label: 'Miast w Polsce',   icon: MapPin },
-  { value: '98%',    label: 'Zadowolonych klientów', icon: Star },
+  { value: '2 400+', label: 'Aktywnych ofert',        icon: Building2 },
+  { value: '32',     label: 'Miast w Polsce',          icon: MapPin    },
+  { value: '98%',    label: 'Zadowolonych klient\u00f3w', icon: Star   },
 ];
 
 const FEATURES = [
-  { icon: Zap,        title: 'Błyskawiczne wyszukiwanie', desc: 'Tysiące ofert w zasięgu ręki. Filtruj po lokalizacji, cenie i typie nieruchomości.' },
-  { icon: Shield,     title: 'Zweryfikowani agenci',       desc: 'Każdy agent przechodzi weryfikację tożsamości. Twoje bezpieczeństwo jest naszym priorytetem.' },
-  { icon: TrendingUp, title: 'Aktualne ceny rynkowe',      desc: 'Dane aktualizowane na bieżąco. Zawsze wiesz, ile naprawdę warto zapłacić.' },
+  { icon: Zap,        title: 'B\u0142yskawiczne wyszukiwanie', desc: 'Tysi\u0105ce ofert w zasi\u0119gu r\u0119ki. Filtruj po lokalizacji, cenie i typie nieruchomo\u015bci.' },
+  { icon: Shield,     title: 'Zweryfikowani agenci',           desc: 'Ka\u017cdy agent przechodzi weryfikacj\u0119 to\u017csamo\u015bci. Twoje bezpiecze\u0144stwo jest naszym priorytetem.' },
+  { icon: TrendingUp, title: 'Aktualne ceny rynkowe',          desc: 'Dane aktualizowane na bie\u017c\u0105co. Zawsze wiesz, ile naprawd\u0119 warto zap\u0142aci\u0107.' },
 ];
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+// ─── Mouse parallax hook ──────────────────────────────────────────────────────
+function useMouseParallax() {
+  const [pos, setPos] = useState({ x: 0, y: 0 });
+  const raf = useRef<number | null>(null);
+  const target = useRef({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      // normalise to -1 … +1
+      target.current = {
+        x: (e.clientX / window.innerWidth  - 0.5) * 2,
+        y: (e.clientY / window.innerHeight - 0.5) * 2,
+      };
+    };
+
+    const tick = () => {
+      // smooth lerp so motion feels silky
+      setPos(prev => ({
+        x: prev.x + (target.current.x - prev.x) * 0.06,
+        y: prev.y + (target.current.y - prev.y) * 0.06,
+      }));
+      raf.current = requestAnimationFrame(tick);
+    };
+
+    window.addEventListener('mousemove', onMove);
+    raf.current = requestAnimationFrame(tick);
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      if (raf.current) cancelAnimationFrame(raf.current);
+    };
+  }, []);
+
+  return pos;
+}
+
 export default function HomePage() {
   const { user } = useAuth();
-  const [properties, setProperties]     = useState<Property[]>([]);
-  const [isLoading, setIsLoading]       = useState(true);
-  const [currentPage, setCurrentPage]   = useState(0);
-  const [totalPages, setTotalPages]     = useState(0);
+  const [properties, setProperties]       = useState<Property[]>([]);
+  const [isLoading, setIsLoading]         = useState(true);
+  const [currentPage, setCurrentPage]     = useState(0);
+  const [totalPages, setTotalPages]       = useState(0);
   const [totalElements, setTotalElements] = useState(0);
-  const [error, setError]               = useState<string | null>(null);
+  const [error, setError]                 = useState<string | null>(null);
   const listRef = useRef<HTMLElement>(null);
+  const mouse = useMouseParallax();
 
   useEffect(() => { fetchProperties(); }, [currentPage]);
 
@@ -86,7 +118,7 @@ export default function HomePage() {
       setTotalPages(data.totalPages);
       setTotalElements(data.totalElements);
     } catch {
-      setError('Nie udało się pobrać ofert.');
+      setError('Nie uda\u0142o si\u0119 pobra\u0107 ofert.');
     } finally {
       setIsLoading(false);
     }
@@ -96,6 +128,11 @@ export default function HomePage() {
     setCurrentPage(next);
     listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
+
+  // orb offsets – each orb moves at different speed for depth illusion
+  const o1 = { x: mouse.x * 28, y: mouse.y * 28 }; // main centre orb
+  const o2 = { x: mouse.x * -18, y: mouse.y * -18 }; // violet orb
+  const o3 = { x: mouse.x * 14, y: mouse.y * 14 }; // blue-right orb
 
   return (
     <div style={PAGE}>
@@ -113,22 +150,52 @@ export default function HomePage() {
         padding: '80px 24px 200px',
         overflow: 'hidden',
       }}>
-        {/* glow orbs */}
+        {/* parallax orbs */}
         <div aria-hidden style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', top: '22%', left: '50%', transform: 'translateX(-50%)', width: 800, height: 800, background: 'radial-gradient(circle, rgba(37,99,235,0.10) 0%, transparent 70%)', borderRadius: '50%' }} />
-          <div style={{ position: 'absolute', top: '40%', left: '15%', width: 500, height: 500, background: 'radial-gradient(circle, rgba(139,92,246,0.07) 0%, transparent 70%)', borderRadius: '50%' }} />
-          <div style={{ position: 'absolute', bottom: '15%', right: '10%', width: 400, height: 400, background: 'radial-gradient(circle, rgba(96,165,250,0.06) 0%, transparent 70%)', borderRadius: '50%' }} />
+          {/* orb 1 – big blue centre */}
+          <div style={{
+            position: 'absolute',
+            top: `calc(22% + ${o1.y}px)`,
+            left: `calc(50% + ${o1.x}px)`,
+            transform: 'translate(-50%, -50%)',
+            width: 820, height: 820,
+            background: 'radial-gradient(circle, rgba(37,99,235,0.13) 0%, transparent 68%)',
+            borderRadius: '50%',
+            willChange: 'top, left',
+          }} />
+          {/* orb 2 – violet left */}
+          <div style={{
+            position: 'absolute',
+            top: `calc(42% + ${o2.y}px)`,
+            left: `calc(14% + ${o2.x}px)`,
+            transform: 'translate(-50%, -50%)',
+            width: 520, height: 520,
+            background: 'radial-gradient(circle, rgba(139,92,246,0.09) 0%, transparent 68%)',
+            borderRadius: '50%',
+            willChange: 'top, left',
+          }} />
+          {/* orb 3 – blue right */}
+          <div style={{
+            position: 'absolute',
+            top: `calc(60% + ${o3.y}px)`,
+            left: `calc(82% + ${o3.x}px)`,
+            transform: 'translate(-50%, -50%)',
+            width: 420, height: 420,
+            background: 'radial-gradient(circle, rgba(96,165,250,0.08) 0%, transparent 68%)',
+            borderRadius: '50%',
+            willChange: 'top, left',
+          }} />
         </div>
-        {/* dot grid */}
+
+        {/* dot grid – static */}
         <div aria-hidden style={{
-          position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.35,
+          position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.32,
           backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px)',
           backgroundSize: '40px 40px',
         }} />
 
-        {/* main content */}
+        {/* content */}
         <div className="anim-fade-up" style={{ position: 'relative', zIndex: 2, textAlign: 'center', width: '100%', maxWidth: 780 }}>
-          {/* pill badge */}
           <div style={{
             display: 'inline-flex', alignItems: 'center', gap: 8,
             padding: '6px 18px', borderRadius: 999,
@@ -137,17 +204,17 @@ export default function HomePage() {
             fontSize: 12, color: '#94a3b8', fontWeight: 500, marginBottom: 32,
           }}>
             <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#3b82f6', animation: 'pulse-dot 2s ease-in-out infinite' }} />
-            Portal nieruchomości premium w Polsce
+            Portal nieruchomo\u015bci premium w Polsce
           </div>
 
           <h1 style={{ fontSize: 'clamp(2.6rem, 6vw, 5rem)', fontWeight: 800, lineHeight: 1.06, letterSpacing: '-0.035em', marginBottom: 22 }}>
-            <span className="grad-text">Znajdź swoje</span><br />
+            <span className="grad-text">Znajd\u017a swoje</span><br />
             <span className="grad-text-blue">wymarzone miejsce</span>
           </h1>
 
           <p style={{ color: '#64748b', fontSize: 'clamp(1rem, 1.8vw, 1.15rem)', maxWidth: 500, margin: '0 auto 40px', lineHeight: 1.75 }}>
-            Tysiące ofert nieruchomości w całej Polsce.
-            Mieszkania, domy, działki — kup lub wynajmij z nami.
+            Tysi\u0105ce ofert nieruchomo\u015bci w ca\u0142ej Polsce.
+            Mieszkania, domy, dzia\u0142ki \u2014 kup lub wynajmij z nami.
           </p>
 
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 12 }}>
@@ -161,7 +228,7 @@ export default function HomePage() {
                 boxShadow: '0 8px 28px rgba(37,99,235,0.40)',
                 letterSpacing: '-0.01em',
               }}>
-                <Search size={16} /> Przeglądaj oferty <ArrowRight size={15} />
+                <Search size={16} /> Przegl\u0105daj oferty <ArrowRight size={15} />
               </button>
             </a>
             {!user && (
@@ -174,14 +241,14 @@ export default function HomePage() {
                   color: '#cbd5e1', fontWeight: 600, fontSize: 14,
                   cursor: 'pointer', letterSpacing: '-0.01em',
                 }}>
-                  Zarejestruj się za darmo
+                  Zarejestruj si\u0119 za darmo
                 </button>
               </Link>
             )}
           </div>
         </div>
 
-        {/* stats bar */}
+        {/* stats */}
         <div className="anim-fade-in" style={{
           position: 'absolute', bottom: 48,
           left: '50%', transform: 'translateX(-50%)',
@@ -212,8 +279,7 @@ export default function HomePage() {
 
         {/* scroll hint */}
         <div className="anim-float" style={{
-          position: 'absolute', bottom: 160,
-          left: '50%',
+          position: 'absolute', bottom: 160, left: '50%',
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
           color: '#1e293b',
         }}>
@@ -227,14 +293,9 @@ export default function HomePage() {
         <div style={INNER}>
           <div style={{ textAlign: 'center', marginBottom: 60 }}>
             <p style={{ color: '#3b82f6', fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12 }}>Dlaczego InduoHouse</p>
-            <h2 className="grad-text" style={{ fontSize: 'clamp(1.8rem, 3vw, 2.6rem)', fontWeight: 800, letterSpacing: '-0.025em' }}>Nieruchomości po nowemu</h2>
+            <h2 className="grad-text" style={{ fontSize: 'clamp(1.8rem, 3vw, 2.6rem)', fontWeight: 800, letterSpacing: '-0.025em' }}>Nieruchomo\u015bci po nowemu</h2>
           </div>
-
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(270px, 1fr))',
-            gap: 20,
-          }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(270px, 1fr))', gap: 20 }}>
             {FEATURES.map(({ icon: Icon, title, desc }) => (
               <div key={title} className="card-lift" style={{
                 borderRadius: 18,
@@ -266,11 +327,10 @@ export default function HomePage() {
         style={{ ...SECTION, padding: '100px 0', borderTop: '1px solid rgba(255,255,255,0.04)' }}
       >
         <div style={INNER}>
-          {/* header row */}
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 52, flexWrap: 'wrap', gap: 16 }}>
             <div>
-              <p style={{ color: '#3b82f6', fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }}>Dostępne oferty</p>
-              <h2 className="grad-text" style={{ fontSize: 'clamp(1.8rem, 3vw, 2.6rem)', fontWeight: 800, letterSpacing: '-0.025em' }}>Najnowsze ogłoszenia</h2>
+              <p style={{ color: '#3b82f6', fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }}>Dost\u0119pne oferty</p>
+              <h2 className="grad-text" style={{ fontSize: 'clamp(1.8rem, 3vw, 2.6rem)', fontWeight: 800, letterSpacing: '-0.025em' }}>Najnowsze og\u0142oszenia</h2>
               {!isLoading && totalElements > 0 && (
                 <p style={{ color: '#334155', fontSize: 13, marginTop: 8 }}>
                   Znaleziono <span style={{ color: '#94a3b8', fontWeight: 600 }}>{totalElements}</span> ofert
@@ -290,7 +350,6 @@ export default function HomePage() {
             </Link>
           </div>
 
-          {/* cards */}
           {isLoading ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 20 }}>
               {Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)}
@@ -298,20 +357,19 @@ export default function HomePage() {
           ) : error ? (
             <div style={{ borderRadius: 16, border: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)', padding: '48px 24px', textAlign: 'center' }}>
               <p style={{ color: '#94a3b8', marginBottom: 16 }}>{error}</p>
-              <button onClick={fetchProperties} style={{ padding: '9px 20px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#cbd5e1', fontSize: 13, cursor: 'pointer' }}>Spróbuj ponownie</button>
+              <button onClick={fetchProperties} style={{ padding: '9px 20px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#cbd5e1', fontSize: 13, cursor: 'pointer' }}>Spr\u00f3buj ponownie</button>
             </div>
           ) : properties.length === 0 ? (
             <div style={{ borderRadius: 16, border: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)', padding: '72px 24px', textAlign: 'center' }}>
               <Building2 size={44} color="#1e293b" style={{ margin: '0 auto 16px', display: 'block' }} />
               <h3 style={{ color: '#cbd5e1', fontWeight: 700, marginBottom: 8 }}>Brak ofert</h3>
-              <p style={{ color: '#334155', fontSize: 13 }}>Nie znaleziono żadnych nieruchomości.</p>
+              <p style={{ color: '#334155', fontSize: 13 }}>Nie znaleziono \u017cadnych nieruchomo\u015bci.</p>
             </div>
           ) : (
             <>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 20 }}>
                 {properties.map(p => <PropertyCard key={p.id} property={p} />)}
               </div>
-
               {totalPages > 1 && (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 52 }}>
                   <button
@@ -321,13 +379,14 @@ export default function HomePage() {
                       display: 'inline-flex', alignItems: 'center', gap: 6,
                       padding: '9px 18px', borderRadius: 10,
                       border: '1px solid rgba(255,255,255,0.08)',
-                      background: 'transparent', color: currentPage === 0 ? '#1e293b' : '#94a3b8',
-                      fontSize: 13, fontWeight: 500, cursor: currentPage === 0 ? 'default' : 'pointer',
+                      background: 'transparent',
+                      color: currentPage === 0 ? '#1e293b' : '#94a3b8',
+                      fontSize: 13, fontWeight: 500,
+                      cursor: currentPage === 0 ? 'default' : 'pointer',
                     }}
                   >
                     <ChevronLeft size={15} /> Poprzednia
                   </button>
-
                   <div style={{ display: 'flex', gap: 5 }}>
                     {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                       const p = currentPage <= 2 ? i
@@ -337,7 +396,8 @@ export default function HomePage() {
                       const active = p === currentPage;
                       return (
                         <button key={p} onClick={() => changePage(p)} style={{
-                          width: 36, height: 36, borderRadius: 8, fontSize: 13, fontWeight: 600,
+                          width: 36, height: 36, borderRadius: 8,
+                          fontSize: 13, fontWeight: 600,
                           border: active ? 'none' : '1px solid rgba(255,255,255,0.08)',
                           background: active ? '#2563eb' : 'transparent',
                           color: active ? '#fff' : '#64748b',
@@ -347,7 +407,6 @@ export default function HomePage() {
                       );
                     })}
                   </div>
-
                   <button
                     onClick={() => changePage(currentPage + 1)}
                     disabled={currentPage >= totalPages - 1}
@@ -355,11 +414,13 @@ export default function HomePage() {
                       display: 'inline-flex', alignItems: 'center', gap: 6,
                       padding: '9px 18px', borderRadius: 10,
                       border: '1px solid rgba(255,255,255,0.08)',
-                      background: 'transparent', color: currentPage >= totalPages - 1 ? '#1e293b' : '#94a3b8',
-                      fontSize: 13, fontWeight: 500, cursor: currentPage >= totalPages - 1 ? 'default' : 'pointer',
+                      background: 'transparent',
+                      color: currentPage >= totalPages - 1 ? '#1e293b' : '#94a3b8',
+                      fontSize: 13, fontWeight: 500,
+                      cursor: currentPage >= totalPages - 1 ? 'default' : 'pointer',
                     }}
                   >
-                    Następna <ChevronRight size={15} />
+                    Nast\u0119pna <ChevronRight size={15} />
                   </button>
                 </div>
               )}
@@ -377,9 +438,9 @@ export default function HomePage() {
             </div>
             <span style={{ fontWeight: 800, color: '#fff', fontSize: 15, letterSpacing: '-0.02em' }}>Induo<span style={{ color: '#60a5fa' }}>House</span></span>
           </Link>
-          <p style={{ color: '#1e293b', fontSize: 12 }}>© 2026 InduoHouse. Wszelkie prawa zastrzeżone.</p>
+          <p style={{ color: '#1e293b', fontSize: 12 }}>\u00a9 2026 InduoHouse. Wszelkie prawa zastrze\u017cone.</p>
           <div style={{ display: 'flex', gap: 20 }}>
-            <Link href="#" style={{ color: '#1e293b', fontSize: 12, textDecoration: 'none' }}>Polityka prywatności</Link>
+            <Link href="#" style={{ color: '#1e293b', fontSize: 12, textDecoration: 'none' }}>Polityka prywatno\u015bci</Link>
             <Link href="#" style={{ color: '#1e293b', fontSize: 12, textDecoration: 'none' }}>Regulamin</Link>
           </div>
         </div>
