@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, CSSProperties } from 'react';
 import { PropertyCard } from '@/components/PropertyCard';
 import Navbar from '@/components/Navbar';
 import { getProperties } from '@/lib/properties';
@@ -12,60 +12,75 @@ import {
   TrendingUp, Shield, Zap, ArrowRight, MapPin, Star
 } from 'lucide-react';
 
-const W = '100%';
-const MAX = '1280px';
-const centerBox = {
-  width: W,
-  maxWidth: MAX,
+// ─── Shared layout helpers ────────────────────────────────────────────────────
+const PAGE: CSSProperties = {
+  width: '100%',
+  maxWidth: '100vw',
+  minHeight: '100vh',
+  background: '#080b14',
+  overflowX: 'hidden',
+};
+
+const SECTION: CSSProperties = {
+  width: '100%',
+  boxSizing: 'border-box',
+};
+
+const INNER: CSSProperties = {
+  display: 'block',
+  width: '100%',
+  maxWidth: 1280,
   marginLeft: 'auto',
   marginRight: 'auto',
-  paddingLeft: '1.5rem',
-  paddingRight: '1.5rem',
-} as const;
+  paddingLeft: 24,
+  paddingRight: 24,
+  boxSizing: 'border-box',
+};
 
+// ─── Skeleton ─────────────────────────────────────────────────────────────────
 function SkeletonCard() {
   return (
-    <div style={{ borderRadius: 16, border: '1px solid rgba(255,255,255,0.06)', background: '#111827', overflow: 'hidden' }}>
-      <div style={{ aspectRatio: '16/10' }} className="skeleton" />
-      <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <div style={{ height: 14, borderRadius: 8, width: '75%' }} className="skeleton" />
-        <div style={{ height: 12, borderRadius: 8, width: '50%' }} className="skeleton" />
-        <div style={{ height: 12, borderRadius: 8, width: '35%' }} className="skeleton" />
-        <div style={{ height: 1, background: 'rgba(255,255,255,0.05)', margin: '4px 0' }} />
-        <div style={{ height: 18, borderRadius: 8, width: '45%' }} className="skeleton" />
+    <div style={{ borderRadius: 16, border: '1px solid rgba(255,255,255,0.06)', background: '#0f1623', overflow: 'hidden' }}>
+      <div style={{ paddingTop: '62.5%' }} className="skeleton" />
+      <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ height: 14, borderRadius: 6, width: '70%' }} className="skeleton" />
+        <div style={{ height: 12, borderRadius: 6, width: '45%' }} className="skeleton" />
+        <div style={{ height: 1, background: 'rgba(255,255,255,0.04)', margin: '4px 0' }} />
+        <div style={{ height: 18, borderRadius: 6, width: '40%' }} className="skeleton" />
       </div>
     </div>
   );
 }
 
+// ─── Data ─────────────────────────────────────────────────────────────────────
 const STATS = [
-  { value: '2 400+', label: 'Aktywnych ofert',       icon: Building2 },
-  { value: '32',     label: 'Miast w Polsce',         icon: MapPin    },
-  { value: '98%',    label: 'Zadowolonych klientów',  icon: Star      },
+  { value: '2 400+', label: 'Aktywnych ofert', icon: Building2 },
+  { value: '32',     label: 'Miast w Polsce',   icon: MapPin },
+  { value: '98%',    label: 'Zadowolonych klientów', icon: Star },
 ];
 
 const FEATURES = [
-  { icon: Zap,       title: 'Błyskawiczne wyszukiwanie', desc: 'Tysiące ofert w zasięgu ręki. Filtruj po lokalizacji, cenie i typie.' },
-  { icon: Shield,    title: 'Zweryfikowani agenci',       desc: 'Każdy agent przechodzi weryfikację. Twoje bezpieczeństwo to nasz priorytet.' },
-  { icon: TrendingUp,title: 'Aktualne ceny rynkowe',      desc: 'Dane aktualizowane w czasie rzeczywistym. Zawsze wiesz ile warto zapłacić.' },
+  { icon: Zap,        title: 'Błyskawiczne wyszukiwanie', desc: 'Tysiące ofert w zasięgu ręki. Filtruj po lokalizacji, cenie i typie nieruchomości.' },
+  { icon: Shield,     title: 'Zweryfikowani agenci',       desc: 'Każdy agent przechodzi weryfikację tożsamości. Twoje bezpieczeństwo jest naszym priorytetem.' },
+  { icon: TrendingUp, title: 'Aktualne ceny rynkowe',      desc: 'Dane aktualizowane na bieżąco. Zawsze wiesz, ile naprawdę warto zapłacić.' },
 ];
 
+// ─── Page ─────────────────────────────────────────────────────────────────────
 export default function HomePage() {
   const { user } = useAuth();
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
+  const [properties, setProperties]     = useState<Property[]>([]);
+  const [isLoading, setIsLoading]       = useState(true);
+  const [currentPage, setCurrentPage]   = useState(0);
+  const [totalPages, setTotalPages]     = useState(0);
   const [totalElements, setTotalElements] = useState(0);
-  const [error, setError] = useState<string | null>(null);
-  const listRef = useRef<HTMLDivElement>(null);
+  const [error, setError]               = useState<string | null>(null);
+  const listRef = useRef<HTMLElement>(null);
 
   useEffect(() => { fetchProperties(); }, [currentPage]);
 
-  const fetchProperties = async () => {
+  async function fetchProperties() {
     try {
-      setIsLoading(true);
-      setError(null);
+      setIsLoading(true); setError(null);
       const data = await getProperties({ page: currentPage, size: 12 });
       setProperties(data.content);
       setTotalPages(data.totalPages);
@@ -75,95 +90,89 @@ export default function HomePage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }
 
-  const changePage = (next: number) => {
+  function changePage(next: number) {
     setCurrentPage(next);
     listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
+  }
 
   return (
-    <div style={{ width: '100%', minHeight: '100vh', background: '#080b14', overflowX: 'hidden' }}>
+    <div style={PAGE}>
       <Navbar />
 
-      {/* ── HERO ── */}
+      {/* ══════════ HERO ══════════ */}
       <section style={{
+        ...SECTION,
         position: 'relative',
         minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '0 1.5rem',
+        padding: '80px 24px 200px',
         overflow: 'hidden',
-        width: '100%',
       }}>
-        {/* orbs */}
-        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-          <div style={{ position: 'absolute', top: '25%', left: '50%', transform: 'translateX(-50%)', width: 700, height: 700, background: 'rgba(37,99,235,0.07)', borderRadius: '50%', filter: 'blur(80px)' }} />
-          <div style={{ position: 'absolute', top: '33%', left: '20%', width: 400, height: 400, background: 'rgba(139,92,246,0.05)', borderRadius: '50%', filter: 'blur(80px)' }} />
-          <div style={{ position: 'absolute', bottom: '20%', right: '15%', width: 350, height: 350, background: 'rgba(96,165,250,0.04)', borderRadius: '50%', filter: 'blur(80px)' }} />
+        {/* glow orbs */}
+        <div aria-hidden style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', top: '22%', left: '50%', transform: 'translateX(-50%)', width: 800, height: 800, background: 'radial-gradient(circle, rgba(37,99,235,0.10) 0%, transparent 70%)', borderRadius: '50%' }} />
+          <div style={{ position: 'absolute', top: '40%', left: '15%', width: 500, height: 500, background: 'radial-gradient(circle, rgba(139,92,246,0.07) 0%, transparent 70%)', borderRadius: '50%' }} />
+          <div style={{ position: 'absolute', bottom: '15%', right: '10%', width: 400, height: 400, background: 'radial-gradient(circle, rgba(96,165,250,0.06) 0%, transparent 70%)', borderRadius: '50%' }} />
         </div>
-
-        {/* grid pattern */}
-        <div style={{
-          position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.015,
-          backgroundImage: 'linear-gradient(rgba(255,255,255,0.5) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.5) 1px,transparent 1px)',
-          backgroundSize: '60px 60px',
+        {/* dot grid */}
+        <div aria-hidden style={{
+          position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.35,
+          backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px)',
+          backgroundSize: '40px 40px',
         }} />
 
-        {/* content */}
-        <div
-          className="animate-fade-up"
-          style={{ position: 'relative', zIndex: 10, textAlign: 'center', maxWidth: '860px', width: '100%' }}
-        >
+        {/* main content */}
+        <div className="anim-fade-up" style={{ position: 'relative', zIndex: 2, textAlign: 'center', width: '100%', maxWidth: 780 }}>
+          {/* pill badge */}
           <div style={{
             display: 'inline-flex', alignItems: 'center', gap: 8,
-            padding: '6px 16px', borderRadius: 999,
+            padding: '6px 18px', borderRadius: 999,
             border: '1px solid rgba(255,255,255,0.1)',
             background: 'rgba(255,255,255,0.04)',
-            fontSize: '0.75rem', color: '#94a3b8', fontWeight: 500,
-            marginBottom: 32,
+            fontSize: 12, color: '#94a3b8', fontWeight: 500, marginBottom: 32,
           }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#60a5fa', animation: 'pulse 2s infinite' }} />
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#3b82f6', animation: 'pulse-dot 2s ease-in-out infinite' }} />
             Portal nieruchomości premium w Polsce
           </div>
 
-          <h1 style={{ fontSize: 'clamp(2.5rem, 6vw, 4.5rem)', fontWeight: 800, lineHeight: 1.08, letterSpacing: '-0.03em', marginBottom: 24 }}>
-            <span className="gradient-text">Znajdź swoje</span>
-            <br />
-            <span className="gradient-text-blue">wymarzone miejsce</span>
+          <h1 style={{ fontSize: 'clamp(2.6rem, 6vw, 5rem)', fontWeight: 800, lineHeight: 1.06, letterSpacing: '-0.035em', marginBottom: 22 }}>
+            <span className="grad-text">Znajdź swoje</span><br />
+            <span className="grad-text-blue">wymarzone miejsce</span>
           </h1>
 
-          <p style={{ color: '#64748b', fontSize: 'clamp(1rem, 2vw, 1.2rem)', maxWidth: 520, margin: '0 auto 40px', lineHeight: 1.7 }}>
-            Tysiące ofert nieruchomości w całej Polsce. Mieszkania, domy, działki — kup lub wynajmij z nami.
+          <p style={{ color: '#64748b', fontSize: 'clamp(1rem, 1.8vw, 1.15rem)', maxWidth: 500, margin: '0 auto 40px', lineHeight: 1.75 }}>
+            Tysiące ofert nieruchomości w całej Polsce.
+            Mieszkania, domy, działki — kup lub wynajmij z nami.
           </p>
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 12 }}>
             <a href="#listings" style={{ textDecoration: 'none' }}>
               <button style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                padding: '12px 28px', borderRadius: 12,
-                background: '#2563eb', color: 'white',
-                fontWeight: 600, fontSize: '0.9rem',
+                display: 'inline-flex', alignItems: 'center', gap: 9,
+                padding: '13px 28px', borderRadius: 12,
+                background: 'linear-gradient(135deg,#2563eb,#1d4ed8)',
+                color: '#fff', fontWeight: 700, fontSize: 14,
                 border: 'none', cursor: 'pointer',
-                boxShadow: '0 8px 24px rgba(37,99,235,0.35)',
-                transition: 'all 0.2s',
+                boxShadow: '0 8px 28px rgba(37,99,235,0.40)',
+                letterSpacing: '-0.01em',
               }}>
-                <Search size={16} />
-                Przeglądaj oferty
-                <ArrowRight size={16} />
+                <Search size={16} /> Przeglądaj oferty <ArrowRight size={15} />
               </button>
             </a>
             {!user && (
               <Link href="/register" style={{ textDecoration: 'none' }}>
                 <button style={{
-                  display: 'flex', alignItems: 'center', gap: 8,
-                  padding: '12px 28px', borderRadius: 12,
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  background: 'rgba(255,255,255,0.04)',
-                  color: '#cbd5e1', fontWeight: 600, fontSize: '0.9rem',
-                  cursor: 'pointer', transition: 'all 0.2s',
+                  display: 'inline-flex', alignItems: 'center', gap: 8,
+                  padding: '13px 28px', borderRadius: 12,
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  background: 'rgba(255,255,255,0.05)',
+                  color: '#cbd5e1', fontWeight: 600, fontSize: 14,
+                  cursor: 'pointer', letterSpacing: '-0.01em',
                 }}>
                   Zarejestruj się za darmo
                 </button>
@@ -172,154 +181,169 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* stats */}
-        <div
-          className="animate-fade-in"
-          style={{ position: 'absolute', bottom: 40, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 560, padding: '0 1.5rem' }}
-        >
-          <div className="glass" style={{ borderRadius: 16, padding: '16px 0', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr' }}>
-            {STATS.map(({ value, label }, i) => (
+        {/* stats bar */}
+        <div className="anim-fade-in" style={{
+          position: 'absolute', bottom: 48,
+          left: '50%', transform: 'translateX(-50%)',
+          width: '100%', maxWidth: 540, padding: '0 24px',
+          boxSizing: 'border-box',
+        }}>
+          <div style={{
+            background: 'rgba(255,255,255,0.03)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.07)',
+            borderRadius: 16,
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr 1fr',
+          }}>
+            {STATS.map(({ value, label }, idx) => (
               <div key={label} style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-                padding: '0 16px',
-                borderRight: i < 2 ? '1px solid rgba(255,255,255,0.06)' : 'none',
+                padding: '16px 8px',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+                borderRight: idx < 2 ? '1px solid rgba(255,255,255,0.06)' : 'none',
               }}>
-                <p style={{ fontSize: '1.25rem', fontWeight: 700, color: 'white' }}>{value}</p>
-                <p style={{ fontSize: '0.72rem', color: '#475569', textAlign: 'center', lineHeight: 1.3 }}>{label}</p>
+                <span style={{ fontSize: 22, fontWeight: 800, color: '#fff', lineHeight: 1 }}>{value}</span>
+                <span style={{ fontSize: 11, color: '#475569', textAlign: 'center', lineHeight: 1.3 }}>{label}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* scroll hint */}
-        <div className="animate-float" style={{ position: 'absolute', bottom: 130, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, color: '#334155' }}>
-          <span style={{ fontSize: '0.65rem', letterSpacing: '0.15em', textTransform: 'uppercase' }}>Scroll</span>
-          <div style={{ width: 1, height: 32, background: 'linear-gradient(to bottom, #334155, transparent)' }} />
+        <div className="anim-float" style={{
+          position: 'absolute', bottom: 160,
+          left: '50%',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
+          color: '#1e293b',
+        }}>
+          <span style={{ fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase' }}>scroll</span>
+          <div style={{ width: 1, height: 30, background: 'linear-gradient(to bottom, #1e293b, transparent)' }} />
         </div>
       </section>
 
-      {/* ── FEATURES ── */}
-      <section style={{ width: '100%', padding: '96px 0', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-        <div style={centerBox}>
-          <div style={{ textAlign: 'center', marginBottom: 56 }}>
-            <p style={{ color: '#3b82f6', fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 10 }}>Dlaczego InduoHouse</p>
-            <h2 className="gradient-text" style={{ fontSize: 'clamp(1.75rem, 3vw, 2.5rem)', fontWeight: 700 }}>Nieruchomości po nowemu</h2>
+      {/* ══════════ FEATURES ══════════ */}
+      <section style={{ ...SECTION, padding: '100px 0', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+        <div style={INNER}>
+          <div style={{ textAlign: 'center', marginBottom: 60 }}>
+            <p style={{ color: '#3b82f6', fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12 }}>Dlaczego InduoHouse</p>
+            <h2 className="grad-text" style={{ fontSize: 'clamp(1.8rem, 3vw, 2.6rem)', fontWeight: 800, letterSpacing: '-0.025em' }}>Nieruchomości po nowemu</h2>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20 }}>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(270px, 1fr))',
+            gap: 20,
+          }}>
             {FEATURES.map(({ icon: Icon, title, desc }) => (
-              <div key={title} className="glass card-hover" style={{ borderRadius: 16, padding: 24 }}>
+              <div key={title} className="card-lift" style={{
+                borderRadius: 18,
+                border: '1px solid rgba(255,255,255,0.06)',
+                background: 'rgba(255,255,255,0.025)',
+                padding: 28,
+              }}>
                 <div style={{
-                  width: 48, height: 48, borderRadius: 12,
+                  width: 50, height: 50, borderRadius: 13,
                   background: 'rgba(37,99,235,0.12)',
                   border: '1px solid rgba(59,130,246,0.2)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  marginBottom: 20,
+                  marginBottom: 22,
                 }}>
-                  <Icon size={20} color="#60a5fa" />
+                  <Icon size={22} color="#60a5fa" />
                 </div>
-                <h3 style={{ fontWeight: 600, color: 'white', marginBottom: 8, fontSize: '0.95rem' }}>{title}</h3>
-                <p style={{ color: '#475569', fontSize: '0.875rem', lineHeight: 1.6 }}>{desc}</p>
+                <h3 style={{ fontWeight: 700, color: '#f1f5f9', fontSize: 15, marginBottom: 10 }}>{title}</h3>
+                <p style={{ color: '#475569', fontSize: 13.5, lineHeight: 1.65 }}>{desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── LISTINGS ── */}
+      {/* ══════════ LISTINGS ══════════ */}
       <section
         id="listings"
-        ref={listRef}
-        style={{ width: '100%', padding: '96px 0', borderTop: '1px solid rgba(255,255,255,0.04)' }}
+        ref={listRef as React.RefObject<HTMLElement>}
+        style={{ ...SECTION, padding: '100px 0', borderTop: '1px solid rgba(255,255,255,0.04)' }}
       >
-        <div style={centerBox}>
-          {/* header */}
-          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 48, flexWrap: 'wrap', gap: 16 }}>
+        <div style={INNER}>
+          {/* header row */}
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 52, flexWrap: 'wrap', gap: 16 }}>
             <div>
-              <p style={{ color: '#3b82f6', fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>Dostępne oferty</p>
-              <h2 className="gradient-text" style={{ fontSize: 'clamp(1.75rem, 3vw, 2.5rem)', fontWeight: 700 }}>Najnowsze ogłoszenia</h2>
+              <p style={{ color: '#3b82f6', fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }}>Dostępne oferty</p>
+              <h2 className="grad-text" style={{ fontSize: 'clamp(1.8rem, 3vw, 2.6rem)', fontWeight: 800, letterSpacing: '-0.025em' }}>Najnowsze ogłoszenia</h2>
               {!isLoading && totalElements > 0 && (
-                <p style={{ color: '#475569', fontSize: '0.85rem', marginTop: 6 }}>
-                  Znaleziono <span style={{ color: '#cbd5e1', fontWeight: 500 }}>{totalElements}</span> ofert
+                <p style={{ color: '#334155', fontSize: 13, marginTop: 8 }}>
+                  Znaleziono <span style={{ color: '#94a3b8', fontWeight: 600 }}>{totalElements}</span> ofert
                 </p>
               )}
             </div>
             <Link href="/properties" style={{ textDecoration: 'none' }}>
               <button style={{
-                display: 'flex', alignItems: 'center', gap: 6,
+                display: 'inline-flex', alignItems: 'center', gap: 7,
                 padding: '9px 18px', borderRadius: 10,
                 border: '1px solid rgba(255,255,255,0.08)',
                 background: 'transparent', color: '#94a3b8',
-                fontSize: '0.85rem', fontWeight: 500,
-                cursor: 'pointer', transition: 'all 0.2s',
+                fontSize: 13, fontWeight: 500, cursor: 'pointer',
               }}>
-                Zobacz wszystkie <ArrowRight size={15} />
+                Zobacz wszystkie <ArrowRight size={14} />
               </button>
             </Link>
           </div>
 
-          {/* grid */}
+          {/* cards */}
           {isLoading ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 20 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 20 }}>
               {Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)}
             </div>
           ) : error ? (
-            <div className="glass" style={{ borderRadius: 16, padding: '48px 24px', textAlign: 'center' }}>
+            <div style={{ borderRadius: 16, border: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)', padding: '48px 24px', textAlign: 'center' }}>
               <p style={{ color: '#94a3b8', marginBottom: 16 }}>{error}</p>
-              <button onClick={fetchProperties} style={{ padding: '9px 20px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#cbd5e1', fontSize: '0.85rem', cursor: 'pointer' }}>Spróbuj ponownie</button>
+              <button onClick={fetchProperties} style={{ padding: '9px 20px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#cbd5e1', fontSize: 13, cursor: 'pointer' }}>Spróbuj ponownie</button>
             </div>
           ) : properties.length === 0 ? (
-            <div className="glass" style={{ borderRadius: 16, padding: '64px 24px', textAlign: 'center' }}>
-              <Building2 size={48} color="#1e293b" style={{ margin: '0 auto 16px' }} />
-              <h3 style={{ color: '#cbd5e1', fontWeight: 600, marginBottom: 8 }}>Brak ofert</h3>
-              <p style={{ color: '#334155', fontSize: '0.875rem' }}>Nie znaleziono żadnych nieruchomości.</p>
+            <div style={{ borderRadius: 16, border: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)', padding: '72px 24px', textAlign: 'center' }}>
+              <Building2 size={44} color="#1e293b" style={{ margin: '0 auto 16px', display: 'block' }} />
+              <h3 style={{ color: '#cbd5e1', fontWeight: 700, marginBottom: 8 }}>Brak ofert</h3>
+              <p style={{ color: '#334155', fontSize: 13 }}>Nie znaleziono żadnych nieruchomości.</p>
             </div>
           ) : (
             <>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 20 }}>
-                {properties.map((p) => <PropertyCard key={p.id} property={p} />)}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 20 }}>
+                {properties.map(p => <PropertyCard key={p.id} property={p} />)}
               </div>
 
-              {/* pagination */}
               {totalPages > 1 && (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginTop: 48 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 52 }}>
                   <button
                     onClick={() => changePage(currentPage - 1)}
                     disabled={currentPage === 0}
                     style={{
-                      display: 'flex', alignItems: 'center', gap: 6,
+                      display: 'inline-flex', alignItems: 'center', gap: 6,
                       padding: '9px 18px', borderRadius: 10,
                       border: '1px solid rgba(255,255,255,0.08)',
-                      background: 'transparent', color: '#94a3b8',
-                      fontSize: '0.85rem', fontWeight: 500,
-                      cursor: currentPage === 0 ? 'not-allowed' : 'pointer',
-                      opacity: currentPage === 0 ? 0.3 : 1,
+                      background: 'transparent', color: currentPage === 0 ? '#1e293b' : '#94a3b8',
+                      fontSize: 13, fontWeight: 500, cursor: currentPage === 0 ? 'default' : 'pointer',
                     }}
                   >
-                    <ChevronLeft size={16} /> Poprzednia
+                    <ChevronLeft size={15} /> Poprzednia
                   </button>
 
-                  <div style={{ display: 'flex', gap: 6 }}>
+                  <div style={{ display: 'flex', gap: 5 }}>
                     {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                      const page = currentPage <= 2 ? i
+                      const p = currentPage <= 2 ? i
                         : currentPage >= totalPages - 3 ? totalPages - 5 + i
                         : currentPage - 2 + i;
-                      if (page < 0 || page >= totalPages) return null;
+                      if (p < 0 || p >= totalPages) return null;
+                      const active = p === currentPage;
                       return (
-                        <button
-                          key={page}
-                          onClick={() => changePage(page)}
-                          style={{
-                            width: 36, height: 36, borderRadius: 8,
-                            fontSize: '0.85rem', fontWeight: 500,
-                            border: page === currentPage ? 'none' : '1px solid rgba(255,255,255,0.08)',
-                            background: page === currentPage ? '#2563eb' : 'transparent',
-                            color: page === currentPage ? 'white' : '#64748b',
-                            cursor: 'pointer',
-                            boxShadow: page === currentPage ? '0 4px 14px rgba(37,99,235,0.35)' : 'none',
-                          }}
-                        >
-                          {page + 1}
-                        </button>
+                        <button key={p} onClick={() => changePage(p)} style={{
+                          width: 36, height: 36, borderRadius: 8, fontSize: 13, fontWeight: 600,
+                          border: active ? 'none' : '1px solid rgba(255,255,255,0.08)',
+                          background: active ? '#2563eb' : 'transparent',
+                          color: active ? '#fff' : '#64748b',
+                          cursor: 'pointer',
+                          boxShadow: active ? '0 4px 16px rgba(37,99,235,0.4)' : 'none',
+                        }}>{p + 1}</button>
                       );
                     })}
                   </div>
@@ -328,16 +352,14 @@ export default function HomePage() {
                     onClick={() => changePage(currentPage + 1)}
                     disabled={currentPage >= totalPages - 1}
                     style={{
-                      display: 'flex', alignItems: 'center', gap: 6,
+                      display: 'inline-flex', alignItems: 'center', gap: 6,
                       padding: '9px 18px', borderRadius: 10,
                       border: '1px solid rgba(255,255,255,0.08)',
-                      background: 'transparent', color: '#94a3b8',
-                      fontSize: '0.85rem', fontWeight: 500,
-                      cursor: currentPage >= totalPages - 1 ? 'not-allowed' : 'pointer',
-                      opacity: currentPage >= totalPages - 1 ? 0.3 : 1,
+                      background: 'transparent', color: currentPage >= totalPages - 1 ? '#1e293b' : '#94a3b8',
+                      fontSize: 13, fontWeight: 500, cursor: currentPage >= totalPages - 1 ? 'default' : 'pointer',
                     }}
                   >
-                    Następna <ChevronRight size={16} />
+                    Następna <ChevronRight size={15} />
                   </button>
                 </div>
               )}
@@ -346,19 +368,19 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── FOOTER ── */}
-      <footer style={{ width: '100%', borderTop: '1px solid rgba(255,255,255,0.05)', padding: '48px 0' }}>
-        <div style={{ ...centerBox, display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
-            <div style={{ width: 28, height: 28, borderRadius: 6, background: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {/* ══════════ FOOTER ══════════ */}
+      <footer style={{ ...SECTION, borderTop: '1px solid rgba(255,255,255,0.05)', padding: '48px 0' }}>
+        <div style={{ ...INNER, display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+          <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 9, textDecoration: 'none' }}>
+            <div style={{ width: 30, height: 30, borderRadius: 7, background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Building2 size={14} color="white" />
             </div>
-            <span style={{ fontWeight: 700, color: 'white', fontSize: '0.95rem' }}>Induo<span style={{ color: '#60a5fa' }}>House</span></span>
+            <span style={{ fontWeight: 800, color: '#fff', fontSize: 15, letterSpacing: '-0.02em' }}>Induo<span style={{ color: '#60a5fa' }}>House</span></span>
           </Link>
-          <p style={{ color: '#334155', fontSize: '0.8rem' }}>© 2026 InduoHouse. Wszelkie prawa zastrzeżone.</p>
+          <p style={{ color: '#1e293b', fontSize: 12 }}>© 2026 InduoHouse. Wszelkie prawa zastrzeżone.</p>
           <div style={{ display: 'flex', gap: 20 }}>
-            <Link href="#" style={{ color: '#334155', fontSize: '0.8rem', textDecoration: 'none' }}>Polityka prywatności</Link>
-            <Link href="#" style={{ color: '#334155', fontSize: '0.8rem', textDecoration: 'none' }}>Regulamin</Link>
+            <Link href="#" style={{ color: '#1e293b', fontSize: 12, textDecoration: 'none' }}>Polityka prywatności</Link>
+            <Link href="#" style={{ color: '#1e293b', fontSize: 12, textDecoration: 'none' }}>Regulamin</Link>
           </div>
         </div>
       </footer>

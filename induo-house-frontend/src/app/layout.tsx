@@ -4,32 +4,29 @@ import './globals.css';
 import { Providers } from '@/components/Providers';
 import { Toaster } from 'react-hot-toast';
 
-const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-inter',
-  display: 'swap',
-});
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' });
 
 export const metadata: Metadata = {
   title: { default: 'InduoHouse', template: '%s — InduoHouse' },
-  description: 'Ekskluzywne nieruchomości w Polsce. Mieszkania, domy i apartamenty premium.',
+  description: 'Ekskluzywne nieruchomości w Polsce.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pl" className={inter.variable} style={{ width: '100%', maxWidth: '100%' }}>
-      <body
-        className="antialiased"
-        style={{
-          width: '100%',
-          maxWidth: '100%',
-          minHeight: '100vh',
-          backgroundColor: '#080b14',
-          color: '#f1f5f9',
-          fontFamily: 'var(--font-inter), sans-serif',
-          overflowX: 'hidden',
-        }}
-      >
+    <html
+      lang="pl"
+      className={inter.variable}
+      style={{ width: '100%', maxWidth: '100vw', overflowX: 'hidden' }}
+    >
+      <body style={{
+        width: '100%',
+        maxWidth: '100vw',
+        minHeight: '100vh',
+        overflowX: 'hidden',
+        background: '#080b14',
+        color: '#f1f5f9',
+        fontFamily: 'var(--font-inter), system-ui, sans-serif',
+      }}>
         <Providers>
           {children}
           <Toaster
@@ -46,7 +43,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
               },
               success: { iconTheme: { primary: '#22c55e', secondary: '#0d1117' } },
-              error:   { iconTheme: { primary: '#ef4444', secondary: '#0d1117' } },
+              error: { iconTheme: { primary: '#ef4444', secondary: '#0d1117' } },
             }}
           />
         </Providers>
