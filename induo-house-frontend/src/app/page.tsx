@@ -1,4 +1,3 @@
-// induo-house-frontend/src/app/page.tsx
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -13,53 +12,52 @@ import {
   TrendingUp, Shield, Zap, ArrowRight, MapPin, Star
 } from 'lucide-react';
 
+const W = '100%';
+const MAX = '1280px';
+const centerBox = {
+  width: W,
+  maxWidth: MAX,
+  marginLeft: 'auto',
+  marginRight: 'auto',
+  paddingLeft: '1.5rem',
+  paddingRight: '1.5rem',
+} as const;
+
 function SkeletonCard() {
   return (
-    <div className="rounded-2xl border border-white/6 bg-[#111827] overflow-hidden">
-      <div className="aspect-[16/10] skeleton" />
-      <div className="p-4 space-y-2.5">
-        <div className="h-4 skeleton rounded-lg w-3/4" />
-        <div className="h-3 skeleton rounded-lg w-1/2" />
-        <div className="h-3 skeleton rounded-lg w-1/3" />
-        <div className="h-px bg-white/5 my-1" />
-        <div className="h-5 skeleton rounded-lg w-2/5" />
+    <div style={{ borderRadius: 16, border: '1px solid rgba(255,255,255,0.06)', background: '#111827', overflow: 'hidden' }}>
+      <div style={{ aspectRatio: '16/10' }} className="skeleton" />
+      <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ height: 14, borderRadius: 8, width: '75%' }} className="skeleton" />
+        <div style={{ height: 12, borderRadius: 8, width: '50%' }} className="skeleton" />
+        <div style={{ height: 12, borderRadius: 8, width: '35%' }} className="skeleton" />
+        <div style={{ height: 1, background: 'rgba(255,255,255,0.05)', margin: '4px 0' }} />
+        <div style={{ height: 18, borderRadius: 8, width: '45%' }} className="skeleton" />
       </div>
     </div>
   );
 }
 
 const STATS = [
-  { value: '2,400+', label: 'Aktywnych ofert', icon: Building2 },
-  { value: '32',     label: 'Miast w Polsce',  icon: MapPin },
-  { value: '98%',    label: 'Zadowolonych klientów', icon: Star },
+  { value: '2 400+', label: 'Aktywnych ofert',       icon: Building2 },
+  { value: '32',     label: 'Miast w Polsce',         icon: MapPin    },
+  { value: '98%',    label: 'Zadowolonych klientów',  icon: Star      },
 ];
 
 const FEATURES = [
-  {
-    icon: Zap,
-    title: 'Błyskawiczne wyszukiwanie',
-    desc: 'Tysiące ofert w zasięgu ręki. Filtruj po lokalizacji, cenie i typie.',
-  },
-  {
-    icon: Shield,
-    title: 'Zweryfikowani agenci',
-    desc: 'Każdy agent przechodzi weryfikację. Twoje bezpieczeństwo to nasz priorytet.',
-  },
-  {
-    icon: TrendingUp,
-    title: 'Aktualne ceny rynkowe',
-    desc: 'Dane aktualizowane w czasie rzeczywistym. Zawsze wiesz ile warto zapłacić.',
-  },
+  { icon: Zap,       title: 'Błyskawiczne wyszukiwanie', desc: 'Tysiące ofert w zasięgu ręki. Filtruj po lokalizacji, cenie i typie.' },
+  { icon: Shield,    title: 'Zweryfikowani agenci',       desc: 'Każdy agent przechodzi weryfikację. Twoje bezpieczeństwo to nasz priorytet.' },
+  { icon: TrendingUp,title: 'Aktualne ceny rynkowe',      desc: 'Dane aktualizowane w czasie rzeczywistym. Zawsze wiesz ile warto zapłacić.' },
 ];
 
 export default function HomePage() {
   const { user } = useAuth();
-  const [properties, setProperties]       = useState<Property[]>([]);
-  const [isLoading, setIsLoading]         = useState(true);
-  const [currentPage, setCurrentPage]     = useState(0);
-  const [totalPages, setTotalPages]       = useState(0);
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
-  const [error, setError]                 = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { fetchProperties(); }, [currentPage]);
@@ -85,56 +83,88 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#080b14] w-full overflow-x-hidden">
+    <div style={{ width: '100%', minHeight: '100vh', background: '#080b14', overflowX: 'hidden' }}>
       <Navbar />
 
-      {/* ───── HERO ───── */}
-      <section className="relative w-full min-h-screen flex flex-col items-center justify-center overflow-hidden">
-
-        {/* Background orbs – zamknięte w overflow-hidden */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[700px] h-[700px] bg-blue-600/8 rounded-full blur-3xl" />
-          <div className="absolute top-1/3 left-[15%] w-[400px] h-[400px] bg-violet-600/6 rounded-full blur-3xl" />
-          <div className="absolute bottom-1/4 right-[15%] w-[350px] h-[350px] bg-blue-400/5 rounded-full blur-3xl" />
+      {/* ── HERO ── */}
+      <section style={{
+        position: 'relative',
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '0 1.5rem',
+        overflow: 'hidden',
+        width: '100%',
+      }}>
+        {/* orbs */}
+        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+          <div style={{ position: 'absolute', top: '25%', left: '50%', transform: 'translateX(-50%)', width: 700, height: 700, background: 'rgba(37,99,235,0.07)', borderRadius: '50%', filter: 'blur(80px)' }} />
+          <div style={{ position: 'absolute', top: '33%', left: '20%', width: 400, height: 400, background: 'rgba(139,92,246,0.05)', borderRadius: '50%', filter: 'blur(80px)' }} />
+          <div style={{ position: 'absolute', bottom: '20%', right: '15%', width: 350, height: 350, background: 'rgba(96,165,250,0.04)', borderRadius: '50%', filter: 'blur(80px)' }} />
         </div>
 
-        {/* Grid pattern */}
-        <div
-          className="absolute inset-0 pointer-events-none opacity-[0.015]"
-          style={{
-            backgroundImage: `linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px),
-                              linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)`,
-            backgroundSize: '60px 60px',
-          }}
-        />
+        {/* grid pattern */}
+        <div style={{
+          position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.015,
+          backgroundImage: 'linear-gradient(rgba(255,255,255,0.5) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.5) 1px,transparent 1px)',
+          backgroundSize: '60px 60px',
+        }} />
 
-        <div className="relative z-10 w-full max-w-4xl mx-auto px-4 text-center animate-fade-up">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/10 bg-white/4 backdrop-blur-sm text-xs text-slate-400 font-medium mb-8">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+        {/* content */}
+        <div
+          className="animate-fade-up"
+          style={{ position: 'relative', zIndex: 10, textAlign: 'center', maxWidth: '860px', width: '100%' }}
+        >
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+            padding: '6px 16px', borderRadius: 999,
+            border: '1px solid rgba(255,255,255,0.1)',
+            background: 'rgba(255,255,255,0.04)',
+            fontSize: '0.75rem', color: '#94a3b8', fontWeight: 500,
+            marginBottom: 32,
+          }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#60a5fa', animation: 'pulse 2s infinite' }} />
             Portal nieruchomości premium w Polsce
           </div>
 
-          <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold leading-[1.05] tracking-tight mb-6">
+          <h1 style={{ fontSize: 'clamp(2.5rem, 6vw, 4.5rem)', fontWeight: 800, lineHeight: 1.08, letterSpacing: '-0.03em', marginBottom: 24 }}>
             <span className="gradient-text">Znajdź swoje</span>
             <br />
             <span className="gradient-text-blue">wymarzone miejsce</span>
           </h1>
 
-          <p className="text-slate-400 text-lg sm:text-xl max-w-xl mx-auto mb-10 leading-relaxed">
+          <p style={{ color: '#64748b', fontSize: 'clamp(1rem, 2vw, 1.2rem)', maxWidth: 520, margin: '0 auto 40px', lineHeight: 1.7 }}>
             Tysiące ofert nieruchomości w całej Polsce. Mieszkania, domy, działki — kup lub wynajmij z nami.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <a href="#listings">
-              <button className="group flex items-center gap-2 px-7 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm transition-all duration-300 shadow-xl shadow-blue-600/25 hover:shadow-blue-600/40 hover:-translate-y-0.5">
-                <Search className="h-4 w-4" />
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+            <a href="#listings" style={{ textDecoration: 'none' }}>
+              <button style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '12px 28px', borderRadius: 12,
+                background: '#2563eb', color: 'white',
+                fontWeight: 600, fontSize: '0.9rem',
+                border: 'none', cursor: 'pointer',
+                boxShadow: '0 8px 24px rgba(37,99,235,0.35)',
+                transition: 'all 0.2s',
+              }}>
+                <Search size={16} />
                 Przeglądaj oferty
-                <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                <ArrowRight size={16} />
               </button>
             </a>
             {!user && (
-              <Link href="/register">
-                <button className="flex items-center gap-2 px-7 py-3.5 rounded-xl border border-white/10 bg-white/4 hover:bg-white/8 text-slate-300 font-semibold text-sm transition-all duration-300 hover:-translate-y-0.5">
+              <Link href="/register" style={{ textDecoration: 'none' }}>
+                <button style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '12px 28px', borderRadius: 12,
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  background: 'rgba(255,255,255,0.04)',
+                  color: '#cbd5e1', fontWeight: 600, fontSize: '0.9rem',
+                  cursor: 'pointer', transition: 'all 0.2s',
+                }}>
                   Zarejestruj się za darmo
                 </button>
               </Link>
@@ -142,128 +172,151 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 w-full max-w-2xl px-4 animate-fade-in">
-          <div className="glass rounded-2xl p-4 grid grid-cols-3 divide-x divide-white/6">
-            {STATS.map(({ value, label }) => (
-              <div key={label} className="flex flex-col items-center gap-1 px-4">
-                <p className="text-xl font-bold text-white">{value}</p>
-                <p className="text-xs text-slate-500 text-center leading-tight">{label}</p>
+        {/* stats */}
+        <div
+          className="animate-fade-in"
+          style={{ position: 'absolute', bottom: 40, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 560, padding: '0 1.5rem' }}
+        >
+          <div className="glass" style={{ borderRadius: 16, padding: '16px 0', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr' }}>
+            {STATS.map(({ value, label }, i) => (
+              <div key={label} style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                padding: '0 16px',
+                borderRight: i < 2 ? '1px solid rgba(255,255,255,0.06)' : 'none',
+              }}>
+                <p style={{ fontSize: '1.25rem', fontWeight: 700, color: 'white' }}>{value}</p>
+                <p style={{ fontSize: '0.72rem', color: '#475569', textAlign: 'center', lineHeight: 1.3 }}>{label}</p>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Scroll indicator */}
-        <div className="absolute bottom-36 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-slate-600 animate-float">
-          <span className="text-xs tracking-widest uppercase">Scroll</span>
-          <div className="w-px h-8 bg-gradient-to-b from-slate-600 to-transparent" />
+        {/* scroll hint */}
+        <div className="animate-float" style={{ position: 'absolute', bottom: 130, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, color: '#334155' }}>
+          <span style={{ fontSize: '0.65rem', letterSpacing: '0.15em', textTransform: 'uppercase' }}>Scroll</span>
+          <div style={{ width: 1, height: 32, background: 'linear-gradient(to bottom, #334155, transparent)' }} />
         </div>
       </section>
 
-      {/* ───── FEATURES ───── */}
-      <section className="w-full py-24 border-t border-white/4">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <p className="text-blue-400 text-sm font-medium tracking-widest uppercase mb-3">Dlaczego InduoHouse</p>
-            <h2 className="text-3xl sm:text-4xl font-bold gradient-text">Nieruchomości po nowemu</h2>
+      {/* ── FEATURES ── */}
+      <section style={{ width: '100%', padding: '96px 0', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+        <div style={centerBox}>
+          <div style={{ textAlign: 'center', marginBottom: 56 }}>
+            <p style={{ color: '#3b82f6', fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 10 }}>Dlaczego InduoHouse</p>
+            <h2 className="gradient-text" style={{ fontSize: 'clamp(1.75rem, 3vw, 2.5rem)', fontWeight: 700 }}>Nieruchomości po nowemu</h2>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {FEATURES.map(({ icon: Icon, title, desc }, i) => (
-              <div
-                key={title}
-                className="glass rounded-2xl p-6 group hover:border-blue-500/20 transition-all duration-300 hover:-translate-y-1"
-                style={{ animationDelay: `${i * 100}ms` }}
-              >
-                <div className="w-12 h-12 rounded-xl bg-blue-600/15 border border-blue-500/20 flex items-center justify-center mb-5 group-hover:bg-blue-600/25 transition-colors">
-                  <Icon className="h-5 w-5 text-blue-400" />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20 }}>
+            {FEATURES.map(({ icon: Icon, title, desc }) => (
+              <div key={title} className="glass card-hover" style={{ borderRadius: 16, padding: 24 }}>
+                <div style={{
+                  width: 48, height: 48, borderRadius: 12,
+                  background: 'rgba(37,99,235,0.12)',
+                  border: '1px solid rgba(59,130,246,0.2)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  marginBottom: 20,
+                }}>
+                  <Icon size={20} color="#60a5fa" />
                 </div>
-                <h3 className="font-semibold text-white mb-2">{title}</h3>
-                <p className="text-slate-500 text-sm leading-relaxed">{desc}</p>
+                <h3 style={{ fontWeight: 600, color: 'white', marginBottom: 8, fontSize: '0.95rem' }}>{title}</h3>
+                <p style={{ color: '#475569', fontSize: '0.875rem', lineHeight: 1.6 }}>{desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ───── LISTINGS ───── */}
-      <section id="listings" ref={listRef} className="w-full py-24 border-t border-white/4">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-
-          <div className="flex items-end justify-between mb-12">
+      {/* ── LISTINGS ── */}
+      <section
+        id="listings"
+        ref={listRef}
+        style={{ width: '100%', padding: '96px 0', borderTop: '1px solid rgba(255,255,255,0.04)' }}
+      >
+        <div style={centerBox}>
+          {/* header */}
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 48, flexWrap: 'wrap', gap: 16 }}>
             <div>
-              <p className="text-blue-400 text-sm font-medium tracking-widest uppercase mb-2">Dostępne oferty</p>
-              <h2 className="text-3xl sm:text-4xl font-bold gradient-text">
-                Najnowsze ogłoszenia
-              </h2>
+              <p style={{ color: '#3b82f6', fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>Dostępne oferty</p>
+              <h2 className="gradient-text" style={{ fontSize: 'clamp(1.75rem, 3vw, 2.5rem)', fontWeight: 700 }}>Najnowsze ogłoszenia</h2>
               {!isLoading && totalElements > 0 && (
-                <p className="text-slate-500 text-sm mt-2">
-                  Znaleziono <span className="text-slate-300 font-medium">{totalElements}</span> ofert
+                <p style={{ color: '#475569', fontSize: '0.85rem', marginTop: 6 }}>
+                  Znaleziono <span style={{ color: '#cbd5e1', fontWeight: 500 }}>{totalElements}</span> ofert
                 </p>
               )}
             </div>
-            <Link href="/properties">
-              <button className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-lg border border-white/8 text-slate-400 hover:text-white hover:border-white/15 text-sm font-medium transition-all duration-200">
-                Zobacz wszystkie
-                <ArrowRight className="h-4 w-4" />
+            <Link href="/properties" style={{ textDecoration: 'none' }}>
+              <button style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '9px 18px', borderRadius: 10,
+                border: '1px solid rgba(255,255,255,0.08)',
+                background: 'transparent', color: '#94a3b8',
+                fontSize: '0.85rem', fontWeight: 500,
+                cursor: 'pointer', transition: 'all 0.2s',
+              }}>
+                Zobacz wszystkie <ArrowRight size={15} />
               </button>
             </Link>
           </div>
 
+          {/* grid */}
           {isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <SkeletonCard key={i} />
-              ))}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 20 }}>
+              {Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)}
             </div>
           ) : error ? (
-            <div className="glass rounded-2xl p-12 text-center">
-              <p className="text-slate-400 mb-4">{error}</p>
-              <button onClick={fetchProperties} className="px-5 py-2.5 rounded-lg border border-white/10 text-slate-300 hover:bg-white/5 text-sm transition-colors">
-                Spróbuj ponownie
-              </button>
+            <div className="glass" style={{ borderRadius: 16, padding: '48px 24px', textAlign: 'center' }}>
+              <p style={{ color: '#94a3b8', marginBottom: 16 }}>{error}</p>
+              <button onClick={fetchProperties} style={{ padding: '9px 20px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#cbd5e1', fontSize: '0.85rem', cursor: 'pointer' }}>Spróbuj ponownie</button>
             </div>
           ) : properties.length === 0 ? (
-            <div className="glass rounded-2xl p-16 text-center">
-              <Building2 className="h-12 w-12 text-slate-700 mx-auto mb-4" />
-              <h3 className="text-slate-300 font-semibold mb-2">Brak ofert</h3>
-              <p className="text-slate-600 text-sm">Nie znaleziono żadnych nieruchomości.</p>
+            <div className="glass" style={{ borderRadius: 16, padding: '64px 24px', textAlign: 'center' }}>
+              <Building2 size={48} color="#1e293b" style={{ margin: '0 auto 16px' }} />
+              <h3 style={{ color: '#cbd5e1', fontWeight: 600, marginBottom: 8 }}>Brak ofert</h3>
+              <p style={{ color: '#334155', fontSize: '0.875rem' }}>Nie znaleziono żadnych nieruchomości.</p>
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                {properties.map((p) => (
-                  <PropertyCard key={p.id} property={p} />
-                ))}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 20 }}>
+                {properties.map((p) => <PropertyCard key={p.id} property={p} />)}
               </div>
 
+              {/* pagination */}
               {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-3 mt-12">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginTop: 48 }}>
                   <button
                     onClick={() => changePage(currentPage - 1)}
                     disabled={currentPage === 0}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-white/8 text-slate-400 hover:text-white hover:border-white/20 text-sm font-medium transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed"
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      padding: '9px 18px', borderRadius: 10,
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      background: 'transparent', color: '#94a3b8',
+                      fontSize: '0.85rem', fontWeight: 500,
+                      cursor: currentPage === 0 ? 'not-allowed' : 'pointer',
+                      opacity: currentPage === 0 ? 0.3 : 1,
+                    }}
                   >
-                    <ChevronLeft className="h-4 w-4" />
-                    Poprzednia
+                    <ChevronLeft size={16} /> Poprzednia
                   </button>
 
-                  <div className="flex items-center gap-1.5">
+                  <div style={{ display: 'flex', gap: 6 }}>
                     {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                      const page = currentPage <= 2
-                        ? i
-                        : currentPage >= totalPages - 3
-                        ? totalPages - 5 + i
+                      const page = currentPage <= 2 ? i
+                        : currentPage >= totalPages - 3 ? totalPages - 5 + i
                         : currentPage - 2 + i;
                       if (page < 0 || page >= totalPages) return null;
                       return (
                         <button
                           key={page}
                           onClick={() => changePage(page)}
-                          className={`w-9 h-9 rounded-lg text-sm font-medium transition-all duration-200 ${
-                            page === currentPage
-                              ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
-                              : 'border border-white/8 text-slate-500 hover:text-white hover:border-white/20'
-                          }`}
+                          style={{
+                            width: 36, height: 36, borderRadius: 8,
+                            fontSize: '0.85rem', fontWeight: 500,
+                            border: page === currentPage ? 'none' : '1px solid rgba(255,255,255,0.08)',
+                            background: page === currentPage ? '#2563eb' : 'transparent',
+                            color: page === currentPage ? 'white' : '#64748b',
+                            cursor: 'pointer',
+                            boxShadow: page === currentPage ? '0 4px 14px rgba(37,99,235,0.35)' : 'none',
+                          }}
                         >
                           {page + 1}
                         </button>
@@ -274,10 +327,17 @@ export default function HomePage() {
                   <button
                     onClick={() => changePage(currentPage + 1)}
                     disabled={currentPage >= totalPages - 1}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-white/8 text-slate-400 hover:text-white hover:border-white/20 text-sm font-medium transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed"
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      padding: '9px 18px', borderRadius: 10,
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      background: 'transparent', color: '#94a3b8',
+                      fontSize: '0.85rem', fontWeight: 500,
+                      cursor: currentPage >= totalPages - 1 ? 'not-allowed' : 'pointer',
+                      opacity: currentPage >= totalPages - 1 ? 0.3 : 1,
+                    }}
                   >
-                    Następna
-                    <ChevronRight className="h-4 w-4" />
+                    Następna <ChevronRight size={16} />
                   </button>
                 </div>
               )}
@@ -286,21 +346,19 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ───── FOOTER ───── */}
-      <footer className="w-full border-t border-white/5 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <Link href="/" className="flex items-center gap-2 font-bold text-white">
-            <div className="w-7 h-7 rounded-md bg-blue-600 flex items-center justify-center">
-              <Building2 className="h-3.5 w-3.5 text-white" />
+      {/* ── FOOTER ── */}
+      <footer style={{ width: '100%', borderTop: '1px solid rgba(255,255,255,0.05)', padding: '48px 0' }}>
+        <div style={{ ...centerBox, display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
+            <div style={{ width: 28, height: 28, borderRadius: 6, background: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Building2 size={14} color="white" />
             </div>
-            Induo<span className="text-blue-400">House</span>
+            <span style={{ fontWeight: 700, color: 'white', fontSize: '0.95rem' }}>Induo<span style={{ color: '#60a5fa' }}>House</span></span>
           </Link>
-          <p className="text-slate-600 text-sm">
-            © 2026 InduoHouse. Wszelkie prawa zastrzeżone.
-          </p>
-          <div className="flex items-center gap-4 text-sm text-slate-600">
-            <Link href="#" className="hover:text-slate-400 transition-colors">Polityka prywatności</Link>
-            <Link href="#" className="hover:text-slate-400 transition-colors">Regulamin</Link>
+          <p style={{ color: '#334155', fontSize: '0.8rem' }}>© 2026 InduoHouse. Wszelkie prawa zastrzeżone.</p>
+          <div style={{ display: 'flex', gap: 20 }}>
+            <Link href="#" style={{ color: '#334155', fontSize: '0.8rem', textDecoration: 'none' }}>Polityka prywatności</Link>
+            <Link href="#" style={{ color: '#334155', fontSize: '0.8rem', textDecoration: 'none' }}>Regulamin</Link>
           </div>
         </div>
       </footer>
