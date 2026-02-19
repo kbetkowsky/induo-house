@@ -51,41 +51,50 @@ function SkeletonCard() {
 }
 
 const STATS = [
-  { value: '2 400+', label: 'Aktywnych ofert',        icon: Building2 },
-  { value: '32',     label: 'Miast w Polsce',          icon: MapPin    },
-  { value: '98%',    label: 'Zadowolonych klient\u00f3w', icon: Star   },
+  { value: '2 400+', label: 'Aktywnych ofert' },
+  { value: '32',     label: 'Miast w Polsce' },
+  { value: '98%',    label: 'Zadowolonych klientów' },
 ];
 
 const FEATURES = [
-  { icon: Zap,        title: 'B\u0142yskawiczne wyszukiwanie', desc: 'Tysi\u0105ce ofert w zasi\u0119gu r\u0119ki. Filtruj po lokalizacji, cenie i typie nieruchomo\u015bci.' },
-  { icon: Shield,     title: 'Zweryfikowani agenci',           desc: 'Ka\u017cdy agent przechodzi weryfikacj\u0119 to\u017csamo\u015bci. Twoje bezpiecze\u0144stwo jest naszym priorytetem.' },
-  { icon: TrendingUp, title: 'Aktualne ceny rynkowe',          desc: 'Dane aktualizowane na bie\u017c\u0105co. Zawsze wiesz, ile naprawd\u0119 warto zap\u0142aci\u0107.' },
+  {
+    icon: Zap,
+    title: 'Błyskawiczne wyszukiwanie',
+    desc: 'Tysiące ofert w zasięgu ręki. Filtruj po lokalizacji, cenie i typie nieruchomości.',
+  },
+  {
+    icon: Shield,
+    title: 'Zweryfikowani agenci',
+    desc: 'Każdy agent przechodzi weryfikację tożsamości. Twoje bezpieczeństwo jest naszym priorytetem.',
+  },
+  {
+    icon: TrendingUp,
+    title: 'Aktualne ceny rynkowe',
+    desc: 'Dane aktualizowane na bieżąco. Zawsze wiesz, ile naprawdę warto zapłacić.',
+  },
 ];
 
-// ─── Mouse parallax hook ──────────────────────────────────────────────────────
+// ─── Mouse parallax hook ───────────────────────────────────────────────────────
 function useMouseParallax() {
   const [pos, setPos] = useState({ x: 0, y: 0 });
-  const raf = useRef<number | null>(null);
   const target = useRef({ x: 0, y: 0 });
+  const raf    = useRef<number | null>(null);
+  const cur    = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
-      // normalise to -1 … +1
       target.current = {
         x: (e.clientX / window.innerWidth  - 0.5) * 2,
         y: (e.clientY / window.innerHeight - 0.5) * 2,
       };
     };
-
     const tick = () => {
-      // smooth lerp so motion feels silky
-      setPos(prev => ({
-        x: prev.x + (target.current.x - prev.x) * 0.06,
-        y: prev.y + (target.current.y - prev.y) * 0.06,
-      }));
+      // lerp factor 0.04 → très doux
+      cur.current.x += (target.current.x - cur.current.x) * 0.04;
+      cur.current.y += (target.current.y - cur.current.y) * 0.04;
+      setPos({ x: cur.current.x, y: cur.current.y });
       raf.current = requestAnimationFrame(tick);
     };
-
     window.addEventListener('mousemove', onMove);
     raf.current = requestAnimationFrame(tick);
     return () => {
@@ -106,7 +115,7 @@ export default function HomePage() {
   const [totalElements, setTotalElements] = useState(0);
   const [error, setError]                 = useState<string | null>(null);
   const listRef = useRef<HTMLElement>(null);
-  const mouse = useMouseParallax();
+  const mouse   = useMouseParallax();
 
   useEffect(() => { fetchProperties(); }, [currentPage]);
 
@@ -118,7 +127,7 @@ export default function HomePage() {
       setTotalPages(data.totalPages);
       setTotalElements(data.totalElements);
     } catch {
-      setError('Nie uda\u0142o si\u0119 pobra\u0107 ofert.');
+      setError('Nie udało się pobrać ofert.');
     } finally {
       setIsLoading(false);
     }
@@ -129,16 +138,16 @@ export default function HomePage() {
     listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  // orb offsets – each orb moves at different speed for depth illusion
-  const o1 = { x: mouse.x * 28, y: mouse.y * 28 }; // main centre orb
-  const o2 = { x: mouse.x * -18, y: mouse.y * -18 }; // violet orb
-  const o3 = { x: mouse.x * 14, y: mouse.y * 14 }; // blue-right orb
+  // każdy orb porusza się z inną siłą i kierunkiem → efekt głębi
+  const o1 = { x: mouse.x * 80,  y: mouse.y * 80  }; // duży, szybki
+  const o2 = { x: mouse.x * -55, y: mouse.y * -55 }; // odwrotny kierunek
+  const o3 = { x: mouse.x * 40,  y: mouse.y * 40  }; // wolniejszy
 
   return (
     <div style={PAGE}>
       <Navbar />
 
-      {/* ══════════ HERO ══════════ */}
+      {/* ══ HERO ══ */}
       <section style={{
         ...SECTION,
         position: 'relative',
@@ -150,47 +159,56 @@ export default function HomePage() {
         padding: '80px 24px 200px',
         overflow: 'hidden',
       }}>
+
         {/* parallax orbs */}
         <div aria-hidden style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
-          {/* orb 1 – big blue centre */}
+          {/* orb 1 – duży niebieski centrum */}
           <div style={{
             position: 'absolute',
-            top: `calc(22% + ${o1.y}px)`,
-            left: `calc(50% + ${o1.x}px)`,
-            transform: 'translate(-50%, -50%)',
-            width: 820, height: 820,
-            background: 'radial-gradient(circle, rgba(37,99,235,0.13) 0%, transparent 68%)',
+            width: 900, height: 900,
+            top: '50%', left: '50%',
+            transform: `translate(calc(-50% + ${o1.x}px), calc(-50% + ${o1.y}px))`,
+            background: 'radial-gradient(circle, rgba(37,99,235,0.18) 0%, transparent 65%)',
             borderRadius: '50%',
-            willChange: 'top, left',
+            transition: 'transform 0.05s linear',
+            willChange: 'transform',
           }} />
-          {/* orb 2 – violet left */}
+          {/* orb 2 – fioletowy lewy */}
           <div style={{
             position: 'absolute',
-            top: `calc(42% + ${o2.y}px)`,
-            left: `calc(14% + ${o2.x}px)`,
-            transform: 'translate(-50%, -50%)',
-            width: 520, height: 520,
-            background: 'radial-gradient(circle, rgba(139,92,246,0.09) 0%, transparent 68%)',
+            width: 650, height: 650,
+            top: '35%', left: '10%',
+            transform: `translate(${o2.x}px, ${o2.y}px)`,
+            background: 'radial-gradient(circle, rgba(139,92,246,0.16) 0%, transparent 65%)',
             borderRadius: '50%',
-            willChange: 'top, left',
+            willChange: 'transform',
           }} />
-          {/* orb 3 – blue right */}
+          {/* orb 3 – błękitny prawy */}
           <div style={{
             position: 'absolute',
-            top: `calc(60% + ${o3.y}px)`,
-            left: `calc(82% + ${o3.x}px)`,
-            transform: 'translate(-50%, -50%)',
-            width: 420, height: 420,
-            background: 'radial-gradient(circle, rgba(96,165,250,0.08) 0%, transparent 68%)',
+            width: 500, height: 500,
+            top: '55%', left: '70%',
+            transform: `translate(${o3.x}px, ${o3.y}px)`,
+            background: 'radial-gradient(circle, rgba(96,165,250,0.14) 0%, transparent 65%)',
             borderRadius: '50%',
-            willChange: 'top, left',
+            willChange: 'transform',
+          }} />
+          {/* orb 4 – mały różowy akcent */}
+          <div style={{
+            position: 'absolute',
+            width: 300, height: 300,
+            top: '20%', left: '75%',
+            transform: `translate(${-o2.x * 0.6}px, ${-o2.y * 0.6}px)`,
+            background: 'radial-gradient(circle, rgba(236,72,153,0.10) 0%, transparent 65%)',
+            borderRadius: '50%',
+            willChange: 'transform',
           }} />
         </div>
 
-        {/* dot grid – static */}
+        {/* dot grid */}
         <div aria-hidden style={{
-          position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.32,
-          backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px)',
+          position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.3,
+          backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.07) 1px, transparent 1px)',
           backgroundSize: '40px 40px',
         }} />
 
@@ -204,17 +222,17 @@ export default function HomePage() {
             fontSize: 12, color: '#94a3b8', fontWeight: 500, marginBottom: 32,
           }}>
             <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#3b82f6', animation: 'pulse-dot 2s ease-in-out infinite' }} />
-            Portal nieruchomo\u015bci premium w Polsce
+            Portal nieruchomości premium w Polsce
           </div>
 
           <h1 style={{ fontSize: 'clamp(2.6rem, 6vw, 5rem)', fontWeight: 800, lineHeight: 1.06, letterSpacing: '-0.035em', marginBottom: 22 }}>
-            <span className="grad-text">Znajd\u017a swoje</span><br />
+            <span className="grad-text">Znajdź swoje</span><br />
             <span className="grad-text-blue">wymarzone miejsce</span>
           </h1>
 
           <p style={{ color: '#64748b', fontSize: 'clamp(1rem, 1.8vw, 1.15rem)', maxWidth: 500, margin: '0 auto 40px', lineHeight: 1.75 }}>
-            Tysi\u0105ce ofert nieruchomo\u015bci w ca\u0142ej Polsce.
-            Mieszkania, domy, dzia\u0142ki \u2014 kup lub wynajmij z nami.
+            Tysiące ofert nieruchomości w całej Polsce.
+            Mieszkania, domy, działki — kup lub wynajmij z nami.
           </p>
 
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 12 }}>
@@ -228,7 +246,7 @@ export default function HomePage() {
                 boxShadow: '0 8px 28px rgba(37,99,235,0.40)',
                 letterSpacing: '-0.01em',
               }}>
-                <Search size={16} /> Przegl\u0105daj oferty <ArrowRight size={15} />
+                <Search size={16} /> Przeglądaj oferty <ArrowRight size={15} />
               </button>
             </a>
             {!user && (
@@ -241,7 +259,7 @@ export default function HomePage() {
                   color: '#cbd5e1', fontWeight: 600, fontSize: 14,
                   cursor: 'pointer', letterSpacing: '-0.01em',
                 }}>
-                  Zarejestruj si\u0119 za darmo
+                  Zarejestruj się za darmo
                 </button>
               </Link>
             )}
@@ -288,12 +306,12 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ══════════ FEATURES ══════════ */}
+      {/* ══ FEATURES ══ */}
       <section style={{ ...SECTION, padding: '100px 0', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
         <div style={INNER}>
           <div style={{ textAlign: 'center', marginBottom: 60 }}>
             <p style={{ color: '#3b82f6', fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12 }}>Dlaczego InduoHouse</p>
-            <h2 className="grad-text" style={{ fontSize: 'clamp(1.8rem, 3vw, 2.6rem)', fontWeight: 800, letterSpacing: '-0.025em' }}>Nieruchomo\u015bci po nowemu</h2>
+            <h2 className="grad-text" style={{ fontSize: 'clamp(1.8rem, 3vw, 2.6rem)', fontWeight: 800, letterSpacing: '-0.025em' }}>Nieruchomości po nowemu</h2>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(270px, 1fr))', gap: 20 }}>
             {FEATURES.map(({ icon: Icon, title, desc }) => (
@@ -320,7 +338,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ══════════ LISTINGS ══════════ */}
+      {/* ══ LISTINGS ══ */}
       <section
         id="listings"
         ref={listRef as React.RefObject<HTMLElement>}
@@ -329,8 +347,8 @@ export default function HomePage() {
         <div style={INNER}>
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 52, flexWrap: 'wrap', gap: 16 }}>
             <div>
-              <p style={{ color: '#3b82f6', fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }}>Dost\u0119pne oferty</p>
-              <h2 className="grad-text" style={{ fontSize: 'clamp(1.8rem, 3vw, 2.6rem)', fontWeight: 800, letterSpacing: '-0.025em' }}>Najnowsze og\u0142oszenia</h2>
+              <p style={{ color: '#3b82f6', fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }}>Dostępne oferty</p>
+              <h2 className="grad-text" style={{ fontSize: 'clamp(1.8rem, 3vw, 2.6rem)', fontWeight: 800, letterSpacing: '-0.025em' }}>Najnowsze ogłoszenia</h2>
               {!isLoading && totalElements > 0 && (
                 <p style={{ color: '#334155', fontSize: 13, marginTop: 8 }}>
                   Znaleziono <span style={{ color: '#94a3b8', fontWeight: 600 }}>{totalElements}</span> ofert
@@ -357,13 +375,13 @@ export default function HomePage() {
           ) : error ? (
             <div style={{ borderRadius: 16, border: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)', padding: '48px 24px', textAlign: 'center' }}>
               <p style={{ color: '#94a3b8', marginBottom: 16 }}>{error}</p>
-              <button onClick={fetchProperties} style={{ padding: '9px 20px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#cbd5e1', fontSize: 13, cursor: 'pointer' }}>Spr\u00f3buj ponownie</button>
+              <button onClick={fetchProperties} style={{ padding: '9px 20px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#cbd5e1', fontSize: 13, cursor: 'pointer' }}>Spróbuj ponownie</button>
             </div>
           ) : properties.length === 0 ? (
             <div style={{ borderRadius: 16, border: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)', padding: '72px 24px', textAlign: 'center' }}>
               <Building2 size={44} color="#1e293b" style={{ margin: '0 auto 16px', display: 'block' }} />
               <h3 style={{ color: '#cbd5e1', fontWeight: 700, marginBottom: 8 }}>Brak ofert</h3>
-              <p style={{ color: '#334155', fontSize: 13 }}>Nie znaleziono \u017cadnych nieruchomo\u015bci.</p>
+              <p style={{ color: '#334155', fontSize: 13 }}>Nie znaleziono żadnych nieruchomości.</p>
             </div>
           ) : (
             <>
@@ -420,7 +438,7 @@ export default function HomePage() {
                       cursor: currentPage >= totalPages - 1 ? 'default' : 'pointer',
                     }}
                   >
-                    Nast\u0119pna <ChevronRight size={15} />
+                    Następna <ChevronRight size={15} />
                   </button>
                 </div>
               )}
@@ -429,7 +447,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ══════════ FOOTER ══════════ */}
+      {/* ══ FOOTER ══ */}
       <footer style={{ ...SECTION, borderTop: '1px solid rgba(255,255,255,0.05)', padding: '48px 0' }}>
         <div style={{ ...INNER, display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
           <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 9, textDecoration: 'none' }}>
@@ -438,9 +456,9 @@ export default function HomePage() {
             </div>
             <span style={{ fontWeight: 800, color: '#fff', fontSize: 15, letterSpacing: '-0.02em' }}>Induo<span style={{ color: '#60a5fa' }}>House</span></span>
           </Link>
-          <p style={{ color: '#1e293b', fontSize: 12 }}>\u00a9 2026 InduoHouse. Wszelkie prawa zastrze\u017cone.</p>
+          <p style={{ color: '#1e293b', fontSize: 12 }}>© 2026 InduoHouse. Wszelkie prawa zastrzeżone.</p>
           <div style={{ display: 'flex', gap: 20 }}>
-            <Link href="#" style={{ color: '#1e293b', fontSize: 12, textDecoration: 'none' }}>Polityka prywatno\u015bci</Link>
+            <Link href="#" style={{ color: '#1e293b', fontSize: 12, textDecoration: 'none' }}>Polityka prywatności</Link>
             <Link href="#" style={{ color: '#1e293b', fontSize: 12, textDecoration: 'none' }}>Regulamin</Link>
           </div>
         </div>
