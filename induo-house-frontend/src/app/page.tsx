@@ -1,3 +1,4 @@
+// induo-house-frontend/src/app/page.tsx
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -12,7 +13,6 @@ import {
   TrendingUp, Shield, Zap, ArrowRight, MapPin, Star
 } from 'lucide-react';
 
-// Skeleton card
 function SkeletonCard() {
   return (
     <div className="rounded-2xl border border-white/6 bg-[#111827] overflow-hidden">
@@ -30,8 +30,8 @@ function SkeletonCard() {
 
 const STATS = [
   { value: '2,400+', label: 'Aktywnych ofert', icon: Building2 },
-  { value: '32', label: 'Miast w Polsce', icon: MapPin },
-  { value: '98%', label: 'Zadowolonych klientów', icon: Star },
+  { value: '32',     label: 'Miast w Polsce',  icon: MapPin },
+  { value: '98%',    label: 'Zadowolonych klientów', icon: Star },
 ];
 
 const FEATURES = [
@@ -54,17 +54,15 @@ const FEATURES = [
 
 export default function HomePage() {
   const { user } = useAuth();
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
+  const [properties, setProperties]       = useState<Property[]>([]);
+  const [isLoading, setIsLoading]         = useState(true);
+  const [currentPage, setCurrentPage]     = useState(0);
+  const [totalPages, setTotalPages]       = useState(0);
   const [totalElements, setTotalElements] = useState(0);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError]                 = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    fetchProperties();
-  }, [currentPage]);
+  useEffect(() => { fetchProperties(); }, [currentPage]);
 
   const fetchProperties = async () => {
     try {
@@ -87,17 +85,17 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#080b14]">
+    <div className="min-h-screen bg-[#080b14] w-full overflow-x-hidden">
       <Navbar />
 
       {/* ───── HERO ───── */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center px-4 overflow-hidden">
+      <section className="relative w-full min-h-screen flex flex-col items-center justify-center overflow-hidden">
 
-        {/* Background orbs */}
-        <div className="absolute inset-0 pointer-events-none">
+        {/* Background orbs – zamknięte w overflow-hidden */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[700px] h-[700px] bg-blue-600/8 rounded-full blur-3xl" />
-          <div className="absolute top-1/3 left-1/4 w-[400px] h-[400px] bg-violet-600/6 rounded-full blur-3xl" />
-          <div className="absolute bottom-1/4 right-1/4 w-[350px] h-[350px] bg-blue-400/5 rounded-full blur-3xl" />
+          <div className="absolute top-1/3 left-[15%] w-[400px] h-[400px] bg-violet-600/6 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 right-[15%] w-[350px] h-[350px] bg-blue-400/5 rounded-full blur-3xl" />
         </div>
 
         {/* Grid pattern */}
@@ -110,9 +108,7 @@ export default function HomePage() {
           }}
         />
 
-        {/* Content */}
-        <div className="relative z-10 text-center max-w-4xl mx-auto animate-fade-up">
-          {/* Label pill */}
+        <div className="relative z-10 w-full max-w-4xl mx-auto px-4 text-center animate-fade-up">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/10 bg-white/4 backdrop-blur-sm text-xs text-slate-400 font-medium mb-8">
             <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
             Portal nieruchomości premium w Polsce
@@ -128,7 +124,6 @@ export default function HomePage() {
             Tysiące ofert nieruchomości w całej Polsce. Mieszkania, domy, działki — kup lub wynajmij z nami.
           </p>
 
-          {/* CTA buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <a href="#listings">
               <button className="group flex items-center gap-2 px-7 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm transition-all duration-300 shadow-xl shadow-blue-600/25 hover:shadow-blue-600/40 hover:-translate-y-0.5">
@@ -137,7 +132,6 @@ export default function HomePage() {
                 <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
               </button>
             </a>
-
             {!user && (
               <Link href="/register">
                 <button className="flex items-center gap-2 px-7 py-3.5 rounded-xl border border-white/10 bg-white/4 hover:bg-white/8 text-slate-300 font-semibold text-sm transition-all duration-300 hover:-translate-y-0.5">
@@ -148,10 +142,9 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Stats bottom */}
         <div className="absolute bottom-10 left-1/2 -translate-x-1/2 w-full max-w-2xl px-4 animate-fade-in">
           <div className="glass rounded-2xl p-4 grid grid-cols-3 divide-x divide-white/6">
-            {STATS.map(({ value, label, icon: Icon }) => (
+            {STATS.map(({ value, label }) => (
               <div key={label} className="flex flex-col items-center gap-1 px-4">
                 <p className="text-xl font-bold text-white">{value}</p>
                 <p className="text-xs text-slate-500 text-center leading-tight">{label}</p>
@@ -168,8 +161,8 @@ export default function HomePage() {
       </section>
 
       {/* ───── FEATURES ───── */}
-      <section className="py-24 px-4 border-t border-white/4">
-        <div className="max-w-7xl mx-auto">
+      <section className="w-full py-24 border-t border-white/4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <p className="text-blue-400 text-sm font-medium tracking-widest uppercase mb-3">Dlaczego InduoHouse</p>
             <h2 className="text-3xl sm:text-4xl font-bold gradient-text">Nieruchomości po nowemu</h2>
@@ -193,10 +186,9 @@ export default function HomePage() {
       </section>
 
       {/* ───── LISTINGS ───── */}
-      <section id="listings" ref={listRef} className="py-24 px-4 border-t border-white/4">
-        <div className="max-w-7xl mx-auto">
+      <section id="listings" ref={listRef} className="w-full py-24 border-t border-white/4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-          {/* Section header */}
           <div className="flex items-end justify-between mb-12">
             <div>
               <p className="text-blue-400 text-sm font-medium tracking-widest uppercase mb-2">Dostępne oferty</p>
@@ -217,7 +209,6 @@ export default function HomePage() {
             </Link>
           </div>
 
-          {/* Grid */}
           {isLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
               {Array.from({ length: 8 }).map((_, i) => (
@@ -245,7 +236,6 @@ export default function HomePage() {
                 ))}
               </div>
 
-              {/* Pagination */}
               {totalPages > 1 && (
                 <div className="flex items-center justify-center gap-3 mt-12">
                   <button
@@ -297,8 +287,8 @@ export default function HomePage() {
       </section>
 
       {/* ───── FOOTER ───── */}
-      <footer className="border-t border-white/5 py-12 px-4">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+      <footer className="w-full border-t border-white/5 py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-2 font-bold text-white">
             <div className="w-7 h-7 rounded-md bg-blue-600 flex items-center justify-center">
               <Building2 className="h-3.5 w-3.5 text-white" />

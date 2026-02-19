@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
-import { Building2, LogOut, User, Plus, Menu, X } from 'lucide-react';
+import { Building2, LogOut, Plus, Menu, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 export default function Navbar() {
@@ -29,20 +29,23 @@ export default function Navbar() {
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        {/* Trzy kolumny: logo | nav | akcje */}
+        <div className="grid grid-cols-3 items-center h-16">
 
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-600/30 group-hover:shadow-blue-600/50 transition-shadow">
-              <Building2 className="h-4 w-4 text-white" />
-            </div>
-            <span className="font-bold text-white text-lg tracking-tight">
-              Induo<span className="text-blue-400">House</span>
-            </span>
-          </Link>
+          {/* Kolumna 1 – Logo (lewa) */}
+          <div className="flex items-center">
+            <Link href="/" className="flex items-center gap-2.5 group">
+              <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-600/30 group-hover:shadow-blue-600/50 transition-shadow">
+                <Building2 className="h-4 w-4 text-white" />
+              </div>
+              <span className="font-bold text-white text-lg tracking-tight">
+                Induo<span className="text-blue-400">House</span>
+              </span>
+            </Link>
+          </div>
 
-          {/* Desktop nav */}
-          <div className="hidden md:flex items-center gap-1">
+          {/* Kolumna 2 – Nawigacja (środek) */}
+          <div className="hidden md:flex items-center justify-center gap-1">
             {[
               { href: '/', label: 'Home' },
               { href: '/properties', label: 'Oferty' },
@@ -61,8 +64,8 @@ export default function Navbar() {
             ))}
           </div>
 
-          {/* Right side */}
-          <div className="hidden md:flex items-center gap-2">
+          {/* Kolumna 3 – Akcje (prawa) */}
+          <div className="hidden md:flex items-center justify-end gap-2">
             {isAgent && (
               <Link href="/properties/create">
                 <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-all duration-200 shadow-lg shadow-blue-600/20 hover:shadow-blue-600/40">
@@ -109,13 +112,15 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Mobile toggle */}
-          <button
-            className="md:hidden p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
-            onClick={() => setMenuOpen(!menuOpen)}
-          >
-            {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
+          {/* Mobile toggle – wyrównany do prawej */}
+          <div className="md:hidden flex items-center justify-end col-start-3">
+            <button
+              className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+              onClick={() => setMenuOpen(!menuOpen)}
+            >
+              {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -124,6 +129,11 @@ export default function Navbar() {
         <div className="md:hidden bg-[#0d1117]/95 backdrop-blur-xl border-t border-white/5 px-4 py-4 space-y-1">
           <Link href="/" onClick={() => setMenuOpen(false)} className="block px-3 py-2.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/5 text-sm font-medium transition-colors">Home</Link>
           <Link href="/properties" onClick={() => setMenuOpen(false)} className="block px-3 py-2.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/5 text-sm font-medium transition-colors">Oferty</Link>
+          {isAgent && (
+            <Link href="/properties/create" onClick={() => setMenuOpen(false)} className="block px-3 py-2.5 rounded-lg bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 text-sm font-medium transition-colors">
+              + Dodaj ogłoszenie
+            </Link>
+          )}
           {user ? (
             <>
               <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="block px-3 py-2.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/5 text-sm font-medium transition-colors">Dashboard</Link>
