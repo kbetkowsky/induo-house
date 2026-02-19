@@ -56,3 +56,18 @@ export interface PaginatedResponse<T> {
   first: boolean;
   last: boolean;
 }
+
+export interface PropertyImage {
+  id: number;
+  url: string;
+  isPrimary: boolean;
+  sortOrder: number;
+}
+
+export interface PropertyOwner {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber: string | null;
+}
