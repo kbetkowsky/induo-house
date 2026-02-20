@@ -8,6 +8,7 @@ import { Property, PropertyImage } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
+import SimilarListings from '@/components/SimilarListings';
 import {
   MapPin, Square, BedDouble, Layers, Phone, Mail,
   ChevronLeft, ChevronRight, Building2, Trash2, Pencil,
@@ -58,7 +59,7 @@ export default function PropertyDetailPage() {
       try {
         const data = await getPropertyById(id);
         setProperty(data);
-        setActiveImage(data.images?.find(img => img.isPrimary) ?? data.images?.[0] ?? null);
+        setActiveImage(data.images?.find((img: PropertyImage) => img.isPrimary) ?? data.images?.[0] ?? null);
       } catch {
         setError('Nie udało się załadować ogłoszenia.');
       } finally {
@@ -107,9 +108,25 @@ export default function PropertyDetailPage() {
   const images    = property?.images ?? [];
   const hasImages = images.length > 0;
 
+  /* Skeleton loading */
   if (isLoading) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-base)' }}>
-      <div style={{ width: 44, height: 44, borderRadius: '50%', border: '3px solid var(--border)', borderTopColor: 'var(--accent)', animation: 'spin 0.8s linear infinite' }} />
+    <div style={{ minHeight: '100vh', background: 'var(--bg-base)', paddingTop: 88, paddingBottom: 80 }}>
+      <style>{`
+        @keyframes sk-pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+        .sk { animation: sk-pulse 1.6s ease-in-out infinite; background: rgba(255,255,255,0.06); border-radius: 10px; }
+      `}</style>
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 20px' }}>
+        <div className="sk" style={{ height: 440, borderRadius: 18, marginBottom: 28 }} />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 28 }}>
+          <div>
+            <div className="sk" style={{ height: 180, marginBottom: 16 }} />
+            <div className="sk" style={{ height: 220 }} />
+          </div>
+          <div>
+            <div className="sk" style={{ height: 400 }} />
+          </div>
+        </div>
+      </div>
     </div>
   );
 
@@ -131,10 +148,9 @@ export default function PropertyDetailPage() {
     ...(property.postalCode ? [['Kod pocztowy', property.postalCode] as [string,string]] : []),
   ];
 
-  /* ─── Airbnb grid: 1 big + up to 4 small ─── */
   const [mainImg, ...restImgs] = images;
-  const gridImgs = restImgs.slice(0, 4);        // max 4 po prawej
-  const remaining = images.length - 5;           // ile jeszcze poza siatką
+  const gridImgs = restImgs.slice(0, 4);
+  const remaining = images.length - 5;
 
   return (
     <>
@@ -151,7 +167,6 @@ export default function PropertyDetailPage() {
           .detail-grid { grid-template-columns: 1fr; }
         }
 
-        /* ── Airbnb gallery ── */
         .airbnb-gallery {
           display: grid;
           grid-template-columns: 1fr 1fr;
@@ -160,9 +175,7 @@ export default function PropertyDetailPage() {
           border-radius: 18px;
           overflow: hidden;
         }
-        .airbnb-gallery .main-cell {
-          grid-row: 1 / 3;        /* zajmuje obie wiersze */
-        }
+        .airbnb-gallery .main-cell { grid-row: 1 / 3; }
         .airbnb-cell {
           position: relative; overflow: hidden;
           background: var(--bg-card); cursor: pointer;
@@ -179,8 +192,6 @@ export default function PropertyDetailPage() {
           display: flex; align-items: center; justify-content: center;
         }
         .airbnb-cell:hover .overlay { background: rgba(0,0,0,0.18); }
-
-        /* Licznik "+N więcej" */
         .more-badge {
           position: absolute; inset: 0;
           background: rgba(0,0,0,0.48); backdrop-filter: blur(2px);
@@ -190,8 +201,6 @@ export default function PropertyDetailPage() {
           cursor: pointer;
         }
         .more-badge span { font-size: 12px; font-weight: 600; opacity: 0.8; margin-top: 4px; }
-
-        /* Przycisk "Pokaż wszystkie" */
         .show-all-btn {
           position: absolute; bottom: 14px; right: 14px;
           background: rgba(255,255,255,0.92); backdrop-filter: blur(6px);
@@ -203,8 +212,6 @@ export default function PropertyDetailPage() {
           z-index: 2;
         }
         .show-all-btn:hover { background: #fff; }
-
-        /* Lightbox */
         .lb-overlay {
           position: fixed; inset: 0; z-index: 9999;
           background: rgba(0,0,0,0.94);
@@ -218,8 +225,6 @@ export default function PropertyDetailPage() {
           transition: background 0.2s;
         }
         .lb-nav:hover { background: rgba(255,255,255,0.2); }
-
-        /* Detail table */
         .detail-row {
           display: grid; grid-template-columns: 1fr 1fr;
           border-bottom: 1px solid var(--border);
@@ -234,14 +239,13 @@ export default function PropertyDetailPage() {
           padding: 11px 16px; font-size: 14px; font-weight: 600;
           color: var(--text-primary);
         }
-
-        /* Forms */
         .contact-input {
           width: 100%; padding: 10px 14px;
           background: var(--bg-input); border: 1px solid var(--border-input);
           border-radius: 10px; color: var(--text-primary);
           font-size: 13px; font-family: inherit;
           outline: none; transition: border-color 0.2s; resize: none;
+          box-sizing: border-box;
         }
         .contact-input:focus { border-color: var(--border-hover); }
         .send-btn {
@@ -272,9 +276,23 @@ export default function PropertyDetailPage() {
           content: ''; display: block; width: 3px; height: 18px;
           border-radius: 99px; background: var(--accent);
         }
+
+        /* Breadcrumbs */
+        .breadcrumbs {
+          display: flex; align-items: center; gap: 6px;
+          font-size: 13px; color: var(--text-muted);
+          margin-bottom: 20px; flex-wrap: wrap;
+        }
+        .breadcrumbs a {
+          color: var(--text-muted); text-decoration: none; font-weight: 500;
+          transition: color 0.2s;
+        }
+        .breadcrumbs a:hover { color: var(--text-primary); }
+        .breadcrumbs .sep { color: var(--border-hover); font-size: 11px; }
+        .breadcrumbs .current { color: var(--text-secondary); font-weight: 600; }
       `}</style>
 
-      {/* ── LIGHTBOX ── */}
+      {/* LIGHTBOX */}
       {lightboxOpen && images.length > 0 && (
         <div className="lb-overlay" onClick={() => setLightboxOpen(false)}>
           <button onClick={() => setLightboxOpen(false)} style={{ position: 'absolute', top: 18, right: 18, background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: 10, width: 40, height: 40, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -299,7 +317,6 @@ export default function PropertyDetailPage() {
               <ChevronRight size={22} />
             </button>
           )}
-          {/* Thumbnail strip */}
           {images.length > 1 && (
             <div style={{ position: 'absolute', bottom: 18, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 6 }}>
               {images.map((img, i) => (
@@ -315,15 +332,15 @@ export default function PropertyDetailPage() {
       <div style={{ background: 'var(--bg-base)', minHeight: '100vh', paddingTop: 80, paddingBottom: 80 }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 20px' }}>
 
-          {/* ── BREADCRUMB ── */}
+          {/* BREADCRUMBS */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
-            <Link href="/properties"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--text-muted)', fontSize: 13, textDecoration: 'none', fontWeight: 500 }}
-              onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-primary)')}
-              onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
-            >
-              <ArrowLeft size={14} /> Wszystkie ogłoszenia
-            </Link>
+            <nav className="breadcrumbs" aria-label="breadcrumb">
+              <Link href="/">Strona główna</Link>
+              <span className="sep">›</span>
+              <Link href="/properties">Oferty</Link>
+              <span className="sep">›</span>
+              <span className="current">{property.title.length > 40 ? property.title.slice(0, 40) + '…' : property.title}</span>
+            </nav>
             <div style={{ display: 'flex', gap: 8 }}>
               <button className="icon-btn" title="Udostępnij" onClick={() => { navigator.clipboard?.writeText(window.location.href); toast.success('Link skopiowany!'); }}>
                 <Share2 size={15} />
@@ -346,12 +363,10 @@ export default function PropertyDetailPage() {
             </div>
           </div>
 
-          {/* ── AIRBNB GALLERY ── */}
+          {/* AIRBNB GALLERY */}
           {hasImages ? (
             <div style={{ position: 'relative', marginBottom: 28 }}>
               <div className="airbnb-gallery">
-
-                {/* Główne zdjęcie — lewa kolumna, pełna wysokość */}
                 <div className="airbnb-cell main-cell" onClick={() => openLightbox(0)}>
                   <img src={imgUrl(mainImg.url)} alt={property.title} />
                   <div className="overlay" />
@@ -362,8 +377,6 @@ export default function PropertyDetailPage() {
                     </button>
                   )}
                 </div>
-
-                {/* 4 małe zdjęcia — prawa kolumna, grid 2x2 */}
                 {gridImgs.map((img, i) => {
                   const isLast = i === 3 && remaining > 0;
                   return (
@@ -385,14 +398,10 @@ export default function PropertyDetailPage() {
                     </div>
                   );
                 })}
-
-                {/* Wypełnij puste komórki gdy < 4 małe */}
                 {Array.from({ length: Math.max(0, 4 - gridImgs.length) }).map((_, i) => (
                   <div key={`empty-${i}`} style={{ background: 'var(--bg-card)' }} />
                 ))}
               </div>
-
-              {/* "Pokaż wszystkie zdjęcia" — prawy dolny róg */}
               {images.length > 1 && (
                 <button className="show-all-btn" onClick={() => openLightbox(0)}>
                   <Grid2X2 size={13} />
@@ -407,20 +416,15 @@ export default function PropertyDetailPage() {
             </div>
           )}
 
-          {/* ── MAIN GRID ── */}
+          {/* MAIN GRID */}
           <div className="detail-grid">
-
-            {/* LEFT */}
             <div>
-              {/* Opis */}
               <div className="section-card">
                 <p className="section-title">Opis ogłoszenia</p>
                 <p style={{ padding: '14px 20px 20px', fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.75, whiteSpace: 'pre-line' }}>
                   {property.description || 'Brak opisu.'}
                 </p>
               </div>
-
-              {/* Szczegóły */}
               <div className="section-card">
                 <p className="section-title" style={{ marginBottom: 14 }}>Szczegóły nieruchomości</p>
                 <div style={{ marginTop: 14 }}>
@@ -434,10 +438,8 @@ export default function PropertyDetailPage() {
               </div>
             </div>
 
-            {/* RIGHT — sticky sidebar */}
+            {/* RIGHT sticky sidebar */}
             <div style={{ position: 'sticky', top: 88 }}>
-
-              {/* Cena card */}
               <div className="section-card" style={{ padding: 22 }}>
                 <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
                   <span style={{ padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.06em', background: property.transactionType === 'RENT' ? 'rgba(245,158,11,0.15)' : 'rgba(34,197,94,0.12)', color: property.transactionType === 'RENT' ? '#f59e0b' : '#4ade80' }}>
@@ -447,16 +449,13 @@ export default function PropertyDetailPage() {
                     {TYPE_MAP[property.propertyType]}
                   </span>
                 </div>
-
                 <h1 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.3, margin: '0 0 8px' }}>
                   {property.title}
                 </h1>
-
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-muted)', fontSize: 13, marginBottom: 18 }}>
                   <MapPin size={13} style={{ flexShrink: 0 }} />
                   {property.city}{property.street ? `, ${property.street}` : ''}{property.postalCode ? ` ${property.postalCode}` : ''}
                 </div>
-
                 <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 14, padding: '14px 18px', marginBottom: 16 }}>
                   <div style={{ fontSize: 30, fontWeight: 900, color: 'var(--accent-bright)', letterSpacing: '-0.03em', lineHeight: 1 }}>
                     {formatPrice(property.price)}
@@ -468,21 +467,17 @@ export default function PropertyDetailPage() {
                     </div>
                   )}
                 </div>
-
-                {/* Quick stats */}
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 20 }}>
                   {[
-                    property.area        && { icon: <Square size={13}/>,   label: `${property.area} m²` },
-                    property.numberOfRooms && { icon: <BedDouble size={13}/>, label: `${property.numberOfRooms} pok.` },
-                    property.floor != null && { icon: <Layers size={13}/>,   label: `Piętro ${property.floor}${property.totalFloors ? `/${property.totalFloors}` : ''}` },
+                    property.area           && { icon: <Square size={13}/>,    label: `${property.area} m²` },
+                    property.numberOfRooms  && { icon: <BedDouble size={13}/>,  label: `${property.numberOfRooms} pok.` },
+                    property.floor != null  && { icon: <Layers size={13}/>,    label: `Piętro ${property.floor}${property.totalFloors ? `/${property.totalFloors}` : ''}` },
                   ].filter(Boolean).map((item: any, i) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--text-secondary)', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 10px' }}>
                       {item.icon} {item.label}
                     </div>
                   ))}
                 </div>
-
-                {/* Kontakt */}
                 <div style={{ borderTop: '1px solid var(--border)', paddingTop: 18, marginBottom: 18 }}>
                   <p style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginBottom: 12 }}>Kontakt z ogłoszeniodawcą</p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
@@ -509,28 +504,26 @@ export default function PropertyDetailPage() {
                     )}
                   </div>
                 </div>
-
                 <button onClick={toggleFav} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '11px', borderRadius: 12, border: `1px solid ${fav ? 'rgba(248,113,113,0.3)' : 'var(--border)'}`, background: fav ? 'rgba(239,68,68,0.08)' : 'var(--bg-card)', color: fav ? '#f87171' : 'var(--text-muted)', fontSize: 13, fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', fontFamily: 'inherit' }}>
                   <Heart size={14} fill={fav ? '#f87171' : 'none'} />
                   {fav ? 'Usuń z ulubionych' : 'Dodaj do ulubionych'}
                 </button>
               </div>
 
-              {/* Formularz */}
               <div className="section-card" style={{ padding: 20 }}>
                 <p style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginBottom: 14 }}>Wyślij wiadomość</p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <div>
                     <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 5 }}>Imię i nazwisko</label>
-                    <input className="contact-input" type="text" placeholder="Jan Kowalski" defaultValue={user ? `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() : ''} />
+                    <input className="contact-input" type="text" defaultValue={user ? `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() : ''} />
                   </div>
                   <div>
                     <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 5 }}>E-mail</label>
-                    <input className="contact-input" type="email" placeholder="jan@example.com" defaultValue={user?.email ?? ''} />
+                    <input className="contact-input" type="email" defaultValue={user?.email ?? ''} />
                   </div>
                   <div>
                     <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 5 }}>Telefon <span style={{ opacity: 0.5 }}>(opcjonalny)</span></label>
-                    <input className="contact-input" type="tel" placeholder="+48 500 000 000" />
+                    <input className="contact-input" type="tel" />
                   </div>
                   <div>
                     <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 5 }}>Wiadomość</label>
@@ -541,9 +534,16 @@ export default function PropertyDetailPage() {
                   </button>
                 </div>
               </div>
-
             </div>
           </div>
+
+          {/* SIMILAR LISTINGS */}
+          <SimilarListings
+            currentId={property.id}
+            city={property.city}
+            propertyType={property.propertyType}
+          />
+
         </div>
       </div>
     </>

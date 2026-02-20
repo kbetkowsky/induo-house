@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { Heart, Eye } from 'lucide-react';
 import { PropertyListResponse } from '@/types/property';
+import NewBadge from '@/components/NewBadge';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -187,14 +188,18 @@ export default function PropertyCard({ property }: { property: PropertyListRespo
           padding: '14px 16px', flex: 1,
           display: 'flex', flexDirection: 'column', gap: 6,
         }}>
-          <h3 style={{
-            margin: 0, fontSize: 15, fontWeight: 700,
-            color: 'var(--text-primary)', lineHeight: 1.35,
-            display: '-webkit-box', WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical' as const, overflow: 'hidden',
-          }}>
-            {property.title}
-          </h3>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, justifyContent: 'space-between' }}>
+            <h3 style={{
+              margin: 0, fontSize: 15, fontWeight: 700,
+              color: 'var(--text-primary)', lineHeight: 1.35,
+              display: '-webkit-box', WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical' as const, overflow: 'hidden',
+              flex: 1,
+            }}>
+              {property.title}
+            </h3>
+            <NewBadge createdAt={(property as any).createdAt} />
+          </div>
 
           <p style={{ margin: 0, fontSize: 12, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 4 }}>
             📍 {property.city}
