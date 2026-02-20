@@ -3,33 +3,26 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
-import { Building2, LogOut, Plus, Menu, X } from 'lucide-react';
-import { useState, useEffect, CSSProperties } from 'react';
+import { Building2, LogOut, Plus, Menu, X, Sun, Moon } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useTheme } from '@/hooks/useTheme';
 
 const MAX_W = 1280;
-
-const inner: CSSProperties = {
-  width: '100%',
-  maxWidth: MAX_W,
-  marginLeft: 'auto',
-  marginRight: 'auto',
-  paddingLeft: 24,
-  paddingRight: 24,
-};
 
 export default function Navbar() {
   const { user, logout } = useAuth();
   const pathname = usePathname();
+  const { theme, toggleTheme } = useTheme();
   const [scrolled, setScrolled] = useState(false);
-  const [open, setOpen] = useState(false);
-  const [mobile, setMobile] = useState(false);
+  const [open, setOpen]         = useState(false);
+  const [mobile, setMobile]     = useState(false);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
     const onResize = () => setMobile(window.innerWidth < 768);
     onResize();
-    window.addEventListener('scroll', onScroll);
-    window.addEventListener('resize', onResize);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onResize, { passive: true });
     return () => {
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onResize);
@@ -38,19 +31,20 @@ export default function Navbar() {
 
   const isAgent = user?.role === 'AGENT' || user?.role === 'ADMIN';
 
+  const isDark = theme === 'dark' ||
+    (theme === 'system' && typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-color-scheme: dark)').matches);
+
   const navLink = (href: string, label: string) => (
     <Link
       key={href}
       href={href}
       style={{
-        padding: '6px 16px',
-        borderRadius: 8,
-        fontSize: 14,
-        fontWeight: 500,
-        textDecoration: 'none',
+        padding: '6px 16px', borderRadius: 8,
+        fontSize: 14, fontWeight: 500, textDecoration: 'none',
         transition: 'all 0.2s',
-        background: pathname === href ? 'rgba(255,255,255,0.08)' : 'transparent',
-        color: pathname === href ? '#fff' : '#94a3b8',
+        background: pathname === href ? 'var(--accent-surface)' : 'transparent',
+        color: pathname === href ? 'var(--accent-light)' : 'var(--navbar-text-muted)',
       }}
     >
       {label}
@@ -59,23 +53,18 @@ export default function Navbar() {
 
   return (
     <nav style={{
-      position: 'fixed',
-      top: 0, left: 0, right: 0,
-      width: '100%',
-      zIndex: 100,
+      position: 'fixed', top: 0, left: 0, right: 0, width: '100%', zIndex: 100,
       transition: 'background 0.3s, border-color 0.3s, backdrop-filter 0.3s',
-      background: scrolled ? 'rgba(8,11,20,0.93)' : 'transparent',
+      background: scrolled ? 'var(--navbar-bg)' : 'transparent',
       backdropFilter: scrolled ? 'blur(20px)' : 'none',
       WebkitBackdropFilter: scrolled ? 'blur(20px)' : 'none',
-      borderBottom: scrolled ? '1px solid rgba(255,255,255,0.05)' : '1px solid transparent',
+      borderBottom: scrolled
+        ? '1px solid var(--navbar-border)'
+        : '1px solid transparent',
     }}>
-      <div style={inner}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          height: 64,
-        }}>
+      <div style={{ width: '100%', maxWidth: MAX_W, marginLeft: 'auto', marginRight: 'auto', paddingLeft: 24, paddingRight: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 64 }}>
+
           {/* Logo */}
           <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', flexShrink: 0 }}>
             <div style={{
@@ -86,8 +75,8 @@ export default function Navbar() {
             }}>
               <Building2 size={17} color="white" />
             </div>
-            <span style={{ fontWeight: 800, fontSize: 18, color: 'white', letterSpacing: '-0.03em', lineHeight: 1 }}>
-              Induo<span style={{ color: '#60a5fa' }}>House</span>
+            <span style={{ fontWeight: 800, fontSize: 18, color: 'var(--navbar-text)', letterSpacing: '-0.03em', lineHeight: 1 }}>
+              Induo<span style={{ color: 'var(--accent-bright)' }}>House</span>
             </span>
           </Link>
 
@@ -99,30 +88,53 @@ export default function Navbar() {
             </div>
           )}
 
-          {/* Desktop right actions */}
+          {/* Desktop right */}
           {!mobile && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+
+              {/* Theme toggle */}
+              <button
+                onClick={toggleTheme}
+                title={isDark ? 'Włącz jasny motyw' : 'Włącz ciemny motyw'}
+                style={{
+                  width: 34, height: 34, borderRadius: 8, border: 'none',
+                  background: 'transparent', cursor: 'pointer',
+                  color: 'var(--text-muted)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'color 0.2s, background 0.2s',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-glass)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+              >
+                {isDark ? <Sun size={16} /> : <Moon size={16} />}
+              </button>
+
               {isAgent && (
                 <Link href="/properties/create" style={{ textDecoration: 'none' }}>
                   <button style={{
                     display: 'flex', alignItems: 'center', gap: 7,
                     padding: '8px 16px', borderRadius: 9,
-                    background: '#2563eb', color: '#fff',
+                    background: 'var(--accent)', color: '#fff',
                     fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer',
-                    boxShadow: '0 4px 14px rgba(37,99,235,0.35)',
+                    boxShadow: '0 4px 14px var(--accent-shadow)',
                     transition: 'background 0.2s',
-                  }}>
+                  }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--accent-hover)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'var(--accent)')}
+                  >
                     <Plus size={14} /> Dodaj ogłoszenie
                   </button>
                 </Link>
               )}
+
               {user ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                   <Link href="/dashboard" style={{
                     display: 'flex', alignItems: 'center', gap: 8,
                     padding: '6px 12px', borderRadius: 9,
-                    color: '#94a3b8', textDecoration: 'none',
+                    color: 'var(--text-muted)', textDecoration: 'none',
                     fontSize: 13, fontWeight: 500,
+                    transition: 'color 0.2s',
                   }}>
                     <div style={{
                       width: 27, height: 27, borderRadius: 7,
@@ -136,21 +148,34 @@ export default function Navbar() {
                   </Link>
                   <button onClick={logout} title="Wyloguj" style={{
                     padding: 7, borderRadius: 8, border: 'none',
-                    background: 'transparent', cursor: 'pointer', color: '#475569',
+                    background: 'transparent', cursor: 'pointer',
+                    color: 'var(--text-muted)',
                     display: 'flex', alignItems: 'center',
-                  }}><LogOut size={15} /></button>
+                    transition: 'color 0.2s',
+                  }}
+                    onMouseEnter={e => (e.currentTarget.style.color = '#f87171')}
+                    onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
+                  >
+                    <LogOut size={15} />
+                  </button>
                 </div>
               ) : (
                 <div style={{ display: 'flex', gap: 6 }}>
                   <Link href="/login" style={{
                     padding: '8px 16px', borderRadius: 9, fontSize: 13, fontWeight: 500,
-                    color: '#94a3b8', textDecoration: 'none',
-                  }}>Zaloguj się</Link>
+                    color: 'var(--navbar-text-muted)', textDecoration: 'none',
+                    transition: 'color 0.2s',
+                  }}>
+                    Zaloguj się
+                  </Link>
                   <Link href="/register" style={{
                     padding: '8px 16px', borderRadius: 9, fontSize: 13, fontWeight: 600,
-                    background: '#fff', color: '#0f172a', textDecoration: 'none',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
-                  }}>Zarejestruj</Link>
+                    background: 'var(--accent)', color: '#fff', textDecoration: 'none',
+                    boxShadow: '0 2px 10px var(--accent-shadow)',
+                    transition: 'background 0.2s',
+                  }}>
+                    Zarejestruj
+                  </Link>
                 </div>
               )}
             </div>
@@ -160,8 +185,8 @@ export default function Navbar() {
           {mobile && (
             <button onClick={() => setOpen(!open)} style={{
               padding: 8, borderRadius: 8, border: 'none',
-              background: 'transparent', cursor: 'pointer', color: '#94a3b8',
-              display: 'flex', alignItems: 'center',
+              background: 'transparent', cursor: 'pointer',
+              color: 'var(--text-muted)', display: 'flex', alignItems: 'center',
             }}>
               {open ? <X size={22} /> : <Menu size={22} />}
             </button>
@@ -172,34 +197,48 @@ export default function Navbar() {
       {/* Mobile dropdown */}
       {mobile && open && (
         <div style={{
-          background: 'rgba(10,14,26,0.98)',
+          background: 'var(--navbar-bg)',
           backdropFilter: 'blur(20px)',
-          borderTop: '1px solid rgba(255,255,255,0.06)',
+          borderTop: '1px solid var(--navbar-border)',
           padding: '8px 16px 16px',
         }}>
           {[{ href: '/', label: 'Home' }, { href: '/properties', label: 'Oferty' }].map(({ href, label }) => (
             <Link key={href} href={href} onClick={() => setOpen(false)} style={{
               display: 'block', padding: '10px 12px', borderRadius: 8,
-              color: '#cbd5e1', textDecoration: 'none', fontSize: 14, fontWeight: 500,
-            }}>{label}</Link>
+              color: 'var(--text-secondary)', textDecoration: 'none',
+              fontSize: 14, fontWeight: 500,
+            }}>
+              {label}
+            </Link>
           ))}
           {isAgent && (
             <Link href="/properties/create" onClick={() => setOpen(false)} style={{
               display: 'block', padding: '10px 12px', borderRadius: 8,
-              color: '#60a5fa', textDecoration: 'none', fontSize: 14, fontWeight: 500,
+              color: 'var(--accent-bright)', textDecoration: 'none',
+              fontSize: 14, fontWeight: 500,
             }}>+ Dodaj ogłoszenie</Link>
           )}
           {user ? (
             <>
-              <Link href="/dashboard" onClick={() => setOpen(false)} style={{ display: 'block', padding: '10px 12px', borderRadius: 8, color: '#cbd5e1', textDecoration: 'none', fontSize: 14, fontWeight: 500 }}>Dashboard</Link>
+              <Link href="/dashboard" onClick={() => setOpen(false)} style={{ display: 'block', padding: '10px 12px', borderRadius: 8, color: 'var(--text-secondary)', textDecoration: 'none', fontSize: 14, fontWeight: 500 }}>Dashboard</Link>
               <button onClick={() => { logout(); setOpen(false); }} style={{ width: '100%', textAlign: 'left', padding: '10px 12px', borderRadius: 8, border: 'none', background: 'transparent', color: '#f87171', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>Wyloguj</button>
             </>
           ) : (
             <>
-              <Link href="/login" onClick={() => setOpen(false)} style={{ display: 'block', padding: '10px 12px', borderRadius: 8, color: '#cbd5e1', textDecoration: 'none', fontSize: 14, fontWeight: 500 }}>Zaloguj się</Link>
-              <Link href="/register" onClick={() => setOpen(false)} style={{ display: 'block', padding: '10px 12px', borderRadius: 8, background: '#2563eb', color: '#fff', textDecoration: 'none', fontSize: 14, fontWeight: 600, textAlign: 'center', marginTop: 4 }}>Zarejestruj się</Link>
+              <Link href="/login" onClick={() => setOpen(false)} style={{ display: 'block', padding: '10px 12px', borderRadius: 8, color: 'var(--text-secondary)', textDecoration: 'none', fontSize: 14, fontWeight: 500 }}>Zaloguj się</Link>
+              <Link href="/register" onClick={() => setOpen(false)} style={{ display: 'block', padding: '10px 12px', borderRadius: 8, background: 'var(--accent)', color: '#fff', textDecoration: 'none', fontSize: 14, fontWeight: 600, textAlign: 'center', marginTop: 4 }}>Zarejestruj się</Link>
             </>
           )}
+          {/* Theme toggle mobile */}
+          <button onClick={toggleTheme} style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            width: '100%', padding: '10px 12px', borderRadius: 8,
+            border: 'none', background: 'transparent',
+            color: 'var(--text-muted)', fontSize: 14, fontWeight: 500, cursor: 'pointer',
+          }}>
+            {isDark ? <Sun size={15} /> : <Moon size={15} />}
+            {isDark ? 'Jasny motyw' : 'Ciemny motyw'}
+          </button>
         </div>
       )}
     </nav>
