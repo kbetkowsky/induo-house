@@ -4,6 +4,7 @@ import './globals.css';
 import { Providers } from '@/components/Providers';
 import { Toaster } from 'react-hot-toast';
 import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
 import ScrollToTop from '@/components/ScrollToTop';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' });
@@ -38,10 +39,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         maxWidth: '100vw',
         minHeight: '100vh',
         overflowX: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
       }}>
         <Providers>
           <Navbar />
-          {children}
+          <main style={{ flex: 1 }}>
+            {children}
+          </main>
+          <Footer />
           <Toaster
             position="bottom-right"
             gutter={10}
