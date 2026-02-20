@@ -1,122 +1,118 @@
-'use client';
+"use client";
 
-import { Property } from '@/types';
-import Link from 'next/link';
-import { MapPin, BedDouble, Square, Tag, ArrowUpRight } from 'lucide-react';
+import { useRouter } from "next/navigation";
+import { PropertyListResponse } from "@/types/property";
 
-export function PropertyCard({ property }: { property: Property }) {
-  const formatPrice = (price: number) =>
-    new Intl.NumberFormat('pl-PL', {
-      style: 'currency',
-      currency: 'PLN',
-      maximumFractionDigits: 0,
-    }).format(price);
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
-  const typeMap: Record<string, string> = {
-    APARTMENT: 'Mieszkanie',
-    HOUSE: 'Dom',
-    LAND: 'Działka',
-    COMMERCIAL: 'Komercyjne',
-  };
+const TYPE_LABELS: Record<string, string> = {
+  APARTMENT: "Mieszkanie", HOUSE: "Dom", LAND: "Działka", COMMERCIAL: "Lokal",
+};
 
-  const pricePerM2 = property.area > 0 ? Math.round(property.price / property.area) : null;
+export default function PropertyCard({ property }: { property: PropertyListResponse }) {
+  const router = useRouter();
+
+  const imageUrl = property.thumbnailUrl
+    ? property.thumbnailUrl.startsWith("http")
+      ? property.thumbnailUrl
+      : `${API_BASE}${property.thumbnailUrl}`
+    : null;
+
+  const formattedPrice = new Intl.NumberFormat("pl-PL", {
+    style: "currency", currency: "PLN", maximumFractionDigits: 0,
+  }).format(property.price);
+
+  const pricePerM2 = property.area
+    ? Math.round(property.price / property.area).toLocaleString("pl-PL")
+    : null;
 
   return (
-    <Link href={`/properties/${property.id}`} className="group block h-full">
-      <div className="relative h-full rounded-2xl border border-white/6 bg-[#111827] overflow-hidden card-hover">
+    <div
+      onClick={() => router.push(`/properties/${property.id}`)}
+      style={{
+        background: "#fff", borderRadius: 12, overflow: "hidden",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.07)", cursor: "pointer",
+        transition: "transform 0.2s, box-shadow 0.2s",
+        display: "flex", flexDirection: "column",
+      }}
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLDivElement).style.transform = "translateY(-4px)";
+        (e.currentTarget as HTMLDivElement).style.boxShadow = "0 8px 24px rgba(0,0,0,0.13)";
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLDivElement).style.transform = "translateY(0)";
+        (e.currentTarget as HTMLDivElement).style.boxShadow = "0 2px 8px rgba(0,0,0,0.07)";
+      }}
+    >
+      {/* ZDJĘCIE */}
+      <div style={{ position: "relative", height: 192, overflow: "hidden", background: "#f0f0f0", flexShrink: 0 }}>
+        {imageUrl ? (
+          <img src={imageUrl} alt={property.title} style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+        ) : (
+          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48, color: "#ccc" }}>🏠</div>
+        )}
 
-        {/* Image */}
-        <div className="relative aspect-[16/10] overflow-hidden bg-slate-900">
-          {property.thumbnailUrl ? (
-            <img
-              src={property.thumbnailUrl}
-              alt={property.title}
-              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <div className="text-slate-700 flex flex-col items-center gap-2">
-                <Square className="h-10 w-10" />
-                <span className="text-xs">Brak zdjęcia</span>
-              </div>
-            </div>
-          )}
-
-          {/* Dark overlay on hover */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-
-          {/* Type badge */}
-          <div className="absolute top-3 left-3">
-            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-black/50 backdrop-blur-md text-white border border-white/10">
-              {typeMap[property.propertyType] ?? property.propertyType}
-            </span>
-          </div>
-
-          {/* Transaction badge */}
-          <div className="absolute top-3 right-3">
-            <span className={`text-xs font-semibold px-2.5 py-1 rounded-full backdrop-blur-md border ${
-              property.transactionType === 'SALE'
-                ? 'bg-blue-600/70 text-blue-100 border-blue-500/30'
-                : 'bg-amber-500/70 text-amber-100 border-amber-400/30'
-            }`}>
-              {property.transactionType === 'SALE' ? 'Sprzedaż' : 'Wynajem'}
-            </span>
-          </div>
-
-          {/* Arrow icon */}
-          <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-1 group-hover:translate-y-0">
-            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-600/40">
-              <ArrowUpRight className="h-4 w-4 text-white" />
-            </div>
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="p-4 flex flex-col gap-2.5">
-          <h3 className="text-sm font-semibold text-slate-100 line-clamp-1 group-hover:text-blue-300 transition-colors">
-            {property.title}
-          </h3>
-
-          <div className="flex items-center gap-1.5 text-slate-500 text-xs">
-            <MapPin className="h-3 w-3 flex-shrink-0" />
-            <span className="truncate">{property.city}{property.street ? `, ${property.street}` : ''}</span>
-          </div>
-
-          <div className="flex items-center gap-3 text-xs text-slate-500">
-            {property.area > 0 && (
-              <span className="flex items-center gap-1">
-                <Square className="h-3 w-3" />
-                {property.area} m²
-              </span>
-            )}
-            {property.numberOfRooms && property.numberOfRooms > 0 && (
-              <span className="flex items-center gap-1">
-                <BedDouble className="h-3 w-3" />
-                {property.numberOfRooms} pok.
-              </span>
-            )}
-          </div>
-
-          {/* Divider */}
-          <div className="h-px bg-white/5 my-0.5" />
-
-          {/* Price */}
-          <div className="flex items-end justify-between">
-            <div>
-              <p className="text-lg font-bold text-white">{formatPrice(property.price)}</p>
-              {pricePerM2 && (
-                <p className="text-xs text-slate-600 flex items-center gap-1">
-                  <Tag className="h-2.5 w-2.5" />
-                  {new Intl.NumberFormat('pl-PL').format(pricePerM2)} PLN/m²
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom glow line on hover */}
-        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        {/* Badges */}
+        <span style={{
+          position: "absolute", top: 10, left: 10,
+          background: property.transactionType === "RENT" ? "#f59e0b" : "#16a34a",
+          color: "#fff", padding: "3px 10px", borderRadius: 20,
+          fontSize: 11, fontWeight: 700, textTransform: "uppercase",
+        }}>
+          {property.transactionType === "RENT" ? "Wynajem" : "Sprzedaż"}
+        </span>
+        <span style={{
+          position: "absolute", top: 10, right: 10,
+          background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)",
+          color: "#fff", padding: "3px 10px", borderRadius: 20, fontSize: 11,
+        }}>
+          {TYPE_LABELS[property.propertyType] || property.propertyType}
+        </span>
       </div>
-    </Link>
+
+      {/* TREŚĆ */}
+      <div style={{ padding: "14px 16px", flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
+        <h3 style={{
+          margin: 0, fontSize: 15, fontWeight: 700, color: "#111", lineHeight: 1.35,
+          display: "-webkit-box", WebkitLineClamp: 2,
+          WebkitBoxOrient: "vertical", overflow: "hidden",
+        }}>
+          {property.title}
+        </h3>
+        <p style={{ margin: 0, fontSize: 13, color: "#6b7280" }}>
+          📍 {property.city}
+        </p>
+        <div style={{ display: "flex", gap: 14, fontSize: 13, color: "#4b5563", marginTop: 2 }}>
+          <span title="Powierzchnia">📐 {property.area} m²</span>
+          {property.numberOfRooms != null && property.numberOfRooms > 0 && (
+            <span title="Liczba pokoi">🛏 {property.numberOfRooms} pok.</span>
+          )}
+        </div>
+
+        {/* Kontakt do właściciela */}
+        {property.ownerFirstName && (
+          <p style={{ margin: "6px 0 0", fontSize: 12, color: "#9ca3af", borderTop: "1px solid #f3f4f6", paddingTop: 8 }}>
+            👤 {property.ownerFirstName} {property.ownerLastName}
+            {property.ownerPhoneNumber && ` · 📞 ${property.ownerPhoneNumber}`}
+          </p>
+        )}
+      </div>
+
+      {/* CENA */}
+      <div style={{
+        padding: "12px 16px", borderTop: "1px solid #f3f4f6",
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+      }}>
+        <span style={{ fontSize: 19, fontWeight: 800, color: "#2d6a9f" }}>
+          {formattedPrice}
+        </span>
+        {pricePerM2 && (
+          <span style={{ fontSize: 11, color: "#9ca3af" }}>
+            {pricePerM2} PLN/m²
+          </span>
+        )}
+      </div>
+    </div>
   );
 }

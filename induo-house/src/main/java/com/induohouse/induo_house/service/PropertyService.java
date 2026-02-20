@@ -83,7 +83,7 @@ public class PropertyService {
     }
 
     public Page<PropertyListResponse> getByType(String propertyType, Pageable pageable) {
-        return propertyRepository.findByPropertyType(propertyType, pageable)
+        return propertyRepository.findByPropertyTypeWithDetails(propertyType, pageable)
                 .map(propertyMapper::toListResponse);
     }
 

@@ -43,6 +43,14 @@ body {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.4; }
 }
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
 
 .anim-fade-up  { animation: fadeUp  0.7s cubic-bezier(.22,1,.36,1) both; }
 .anim-fade-in  { animation: fadeIn  0.5s ease both; animation-delay: 0.2s; }

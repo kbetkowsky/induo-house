@@ -1,468 +1,214 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef, CSSProperties } from 'react';
-import { PropertyCard } from '@/components/PropertyCard';
-import Navbar from '@/components/Navbar';
-import { getProperties } from '@/lib/properties';
-import { Property } from '@/types';
-import { useAuth } from '@/hooks/useAuth';
-import Link from 'next/link';
-import {
-  Building2, ChevronLeft, ChevronRight, Search,
-  TrendingUp, Shield, Zap, ArrowRight, MapPin, Star
-} from 'lucide-react';
+import { useState, useEffect, useCallback } from "react";
+import SearchBar from "@/components/SearchBar";
+import PropertyCard from "@/components/PropertyCard";
+import { PropertyListResponse, PageResponse, SearchParams } from "@/types/property";
 
-const PAGE: CSSProperties = {
-  width: '100%',
-  maxWidth: '100vw',
-  minHeight: '100vh',
-  background: '#080b14',
-  overflowX: 'hidden',
-};
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
-const SECTION: CSSProperties = {
-  width: '100%',
-  boxSizing: 'border-box',
-};
+async function fetchProperties(params: SearchParams): Promise<PageResponse<PropertyListResponse>> {
+  // Buduj query string dla paginacji i sortowania
+  const pageable = new URLSearchParams();
+  pageable.set("page", String(params.page ?? 0));
+  pageable.set("size", String(params.size ?? 12));
+  if (params.sort) pageable.set("sort", params.sort);
 
-const INNER: CSSProperties = {
-  display: 'block',
-  width: '100%',
-  maxWidth: 1280,
-  marginLeft: 'auto',
-  marginRight: 'auto',
-  paddingLeft: 24,
-  paddingRight: 24,
-  boxSizing: 'border-box',
-};
+  let url: string;
 
-function SkeletonCard() {
-  return (
-    <div style={{ borderRadius: 16, border: '1px solid rgba(255,255,255,0.06)', background: '#0f1623', overflow: 'hidden' }}>
-      <div style={{ paddingTop: '62.5%' }} className="skeleton" />
-      <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <div style={{ height: 14, borderRadius: 6, width: '70%' }} className="skeleton" />
-        <div style={{ height: 12, borderRadius: 6, width: '45%' }} className="skeleton" />
-        <div style={{ height: 1, background: 'rgba(255,255,255,0.04)', margin: '4px 0' }} />
-        <div style={{ height: 18, borderRadius: 6, width: '40%' }} className="skeleton" />
-      </div>
-    </div>
-  );
+  // Wybór endpointu na podstawie aktywnych filtrów
+  if (params.minPrice !== undefined || params.maxPrice !== undefined) {
+    pageable.set("minPrice", String(params.minPrice ?? 0));
+    pageable.set("maxPrice", String(params.maxPrice ?? 99999999));
+    url = `${API_BASE}/api/properties/price-range?${pageable.toString()}`;
+  } else if (params.city) {
+    url = `${API_BASE}/api/properties/city/${encodeURIComponent(params.city)}?${pageable.toString()}`;
+  } else if (params.propertyType) {
+    url = `${API_BASE}/api/properties/type/${encodeURIComponent(params.propertyType)}?${pageable.toString()}`;
+  } else {
+    url = `${API_BASE}/api/properties?${pageable.toString()}`;
+  }
+
+  const res = await fetch(url, { credentials: "include" });
+  if (!res.ok) throw new Error("Błąd pobierania ogłoszeń");
+  const data = await res.json();
+
+  // /city, /type, /price-range zwracają natywny Spring Page (inne pole "number")
+  // /api/properties zwraca PageResponse (pole "currentPage")
+  if ("number" in data) {
+    return {
+      content: data.content,
+      currentPage: data.number,
+      pageSize: data.size,
+      totalElements: data.totalElements,
+      totalPages: data.totalPages,
+      last: data.last,
+      first: data.first,
+    };
+  }
+  return data;
 }
 
-const STATS = [
-  { value: '2 400+', label: 'Aktywnych ofert' },
-  { value: '32',     label: 'Miast w Polsce' },
-  { value: '98%',    label: 'Zadowolonych klientów' },
-];
-
-const FEATURES = [
-  {
-    icon: Zap,
-    title: 'Błyskawiczne wyszukiwanie',
-    desc: 'Tysiące ofert w zasięgu ręki. Filtruj po lokalizacji, cenie i typie nieruchomości.',
-  },
-  {
-    icon: Shield,
-    title: 'Zweryfikowani agenci',
-    desc: 'Każdy agent przechodzi weryfikację tożsamości. Twoje bezpieczeństwo jest naszym priorytetem.',
-  },
-  {
-    icon: TrendingUp,
-    title: 'Aktualne ceny rynkowe',
-    desc: 'Dane aktualizowane na bieżąco. Zawsze wiesz, ile naprawdę warto zapłacić.',
-  },
-];
-
-// ─── Mouse parallax hook ───────────────────────────────────────────────────────
-function useMouseParallax() {
-  const [pos, setPos] = useState({ x: 0, y: 0 });
-  const target = useRef({ x: 0, y: 0 });
-  const raf    = useRef<number | null>(null);
-  const cur    = useRef({ x: 0, y: 0 });
-
-  useEffect(() => {
-    const onMove = (e: MouseEvent) => {
-      target.current = {
-        x: (e.clientX / window.innerWidth  - 0.5) * 2,
-        y: (e.clientY / window.innerHeight - 0.5) * 2,
-      };
-    };
-    const tick = () => {
-      // lerp factor 0.04 → très doux
-      cur.current.x += (target.current.x - cur.current.x) * 0.04;
-      cur.current.y += (target.current.y - cur.current.y) * 0.04;
-      setPos({ x: cur.current.x, y: cur.current.y });
-      raf.current = requestAnimationFrame(tick);
-    };
-    window.addEventListener('mousemove', onMove);
-    raf.current = requestAnimationFrame(tick);
-    return () => {
-      window.removeEventListener('mousemove', onMove);
-      if (raf.current) cancelAnimationFrame(raf.current);
-    };
-  }, []);
-
-  return pos;
-}
-
-export default function HomePage() {
-  const { user } = useAuth();
-  const [properties, setProperties]       = useState<Property[]>([]);
-  const [isLoading, setIsLoading]         = useState(true);
-  const [currentPage, setCurrentPage]     = useState(0);
-  const [totalPages, setTotalPages]       = useState(0);
+export default function Home() {
+  const [properties, setProperties] = useState<PropertyListResponse[]>([]);
+  const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
-  const [error, setError]                 = useState<string | null>(null);
-  const listRef = useRef<HTMLElement>(null);
-  const mouse   = useMouseParallax();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [params, setParams] = useState<SearchParams>({
+    page: 0,
+    size: 12,
+    sort: "createdAt,desc",
+  });
 
-  useEffect(() => { fetchProperties(); }, [currentPage]);
-
-  async function fetchProperties() {
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
     try {
-      setIsLoading(true); setError(null);
-      const data = await getProperties({ page: currentPage, size: 12 });
+      const data = await fetchProperties(params);
       setProperties(data.content);
       setTotalPages(data.totalPages);
       setTotalElements(data.totalElements);
     } catch {
-      setError('Nie udało się pobrać ofert.');
+      setError("Nie udało się załadować ogłoszeń.");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  }
+  }, [params]);
 
-  function changePage(next: number) {
-    setCurrentPage(next);
-    listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
+  useEffect(() => {
+    load();
+  }, [load]);
 
-  // każdy orb porusza się z inną siłą i kierunkiem → efekt głębi
-  const o1 = { x: mouse.x * 80,  y: mouse.y * 80  }; // duży, szybki
-  const o2 = { x: mouse.x * -55, y: mouse.y * -55 }; // odwrotny kierunek
-  const o3 = { x: mouse.x * 40,  y: mouse.y * 40  }; // wolniejszy
+  const handleSearch = (newParams: Partial<SearchParams>) => {
+    setParams((prev) => ({ ...prev, ...newParams, page: 0 }));
+  };
+
+  const handleSort = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setParams((prev) => ({ ...prev, sort: e.target.value, page: 0 }));
+  };
+
+  const handlePage = (p: number) => {
+    setParams((prev) => ({ ...prev, page: p }));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   return (
-    <div style={PAGE}>
-      <Navbar />
-
-      {/* ══ HERO ══ */}
+    <main style={{ background: "#f5f5f5", minHeight: "100vh", fontFamily: "Inter, sans-serif" }}>
+      {/* HERO + WYSZUKIWARKA */}
       <section style={{
-        ...SECTION,
-        position: 'relative',
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '80px 24px 200px',
-        overflow: 'hidden',
+        background: "linear-gradient(135deg, #1a3c5e 0%, #2d6a9f 100%)",
+        padding: "48px 16px 64px",
       }}>
-
-        {/* parallax orbs */}
-        <div aria-hidden style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
-          {/* orb 1 – duży niebieski centrum */}
-          <div style={{
-            position: 'absolute',
-            width: 900, height: 900,
-            top: '50%', left: '50%',
-            transform: `translate(calc(-50% + ${o1.x}px), calc(-50% + ${o1.y}px))`,
-            background: 'radial-gradient(circle, rgba(37,99,235,0.18) 0%, transparent 65%)',
-            borderRadius: '50%',
-            transition: 'transform 0.05s linear',
-            willChange: 'transform',
-          }} />
-          {/* orb 2 – fioletowy lewy */}
-          <div style={{
-            position: 'absolute',
-            width: 650, height: 650,
-            top: '35%', left: '10%',
-            transform: `translate(${o2.x}px, ${o2.y}px)`,
-            background: 'radial-gradient(circle, rgba(139,92,246,0.16) 0%, transparent 65%)',
-            borderRadius: '50%',
-            willChange: 'transform',
-          }} />
-          {/* orb 3 – błękitny prawy */}
-          <div style={{
-            position: 'absolute',
-            width: 500, height: 500,
-            top: '55%', left: '70%',
-            transform: `translate(${o3.x}px, ${o3.y}px)`,
-            background: 'radial-gradient(circle, rgba(96,165,250,0.14) 0%, transparent 65%)',
-            borderRadius: '50%',
-            willChange: 'transform',
-          }} />
-          {/* orb 4 – mały różowy akcent */}
-          <div style={{
-            position: 'absolute',
-            width: 300, height: 300,
-            top: '20%', left: '75%',
-            transform: `translate(${-o2.x * 0.6}px, ${-o2.y * 0.6}px)`,
-            background: 'radial-gradient(circle, rgba(236,72,153,0.10) 0%, transparent 65%)',
-            borderRadius: '50%',
-            willChange: 'transform',
-          }} />
-        </div>
-
-        {/* dot grid */}
-        <div aria-hidden style={{
-          position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.3,
-          backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.07) 1px, transparent 1px)',
-          backgroundSize: '40px 40px',
-        }} />
-
-        {/* content */}
-        <div className="anim-fade-up" style={{ position: 'relative', zIndex: 2, textAlign: 'center', width: '100%', maxWidth: 780 }}>
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8,
-            padding: '6px 18px', borderRadius: 999,
-            border: '1px solid rgba(255,255,255,0.1)',
-            background: 'rgba(255,255,255,0.04)',
-            fontSize: 12, color: '#94a3b8', fontWeight: 500, marginBottom: 32,
-          }}>
-            <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#3b82f6', animation: 'pulse-dot 2s ease-in-out infinite' }} />
-            Portal nieruchomości premium w Polsce
-          </div>
-
-          <h1 style={{ fontSize: 'clamp(2.6rem, 6vw, 5rem)', fontWeight: 800, lineHeight: 1.06, letterSpacing: '-0.035em', marginBottom: 22 }}>
-            <span className="grad-text">Znajdź swoje</span><br />
-            <span className="grad-text-blue">wymarzone miejsce</span>
+        <div style={{ maxWidth: 900, margin: "0 auto", textAlign: "center" }}>
+          <h1 style={{ color: "#fff", fontSize: "clamp(24px, 4vw, 40px)", fontWeight: 700, marginBottom: 8, margin: "0 0 8px" }}>
+            Znajdź swoje wymarzone miejsce
           </h1>
-
-          <p style={{ color: '#64748b', fontSize: 'clamp(1rem, 1.8vw, 1.15rem)', maxWidth: 500, margin: '0 auto 40px', lineHeight: 1.75 }}>
-            Tysiące ofert nieruchomości w całej Polsce.
-            Mieszkania, domy, działki — kup lub wynajmij z nami.
+          <p style={{ color: "rgba(255,255,255,0.75)", marginBottom: 32, fontSize: 16 }}>
+            Tysiące ofert nieruchomości w całej Polsce
           </p>
-
-          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 12 }}>
-            <a href="#listings" style={{ textDecoration: 'none' }}>
-              <button style={{
-                display: 'inline-flex', alignItems: 'center', gap: 9,
-                padding: '13px 28px', borderRadius: 12,
-                background: 'linear-gradient(135deg,#2563eb,#1d4ed8)',
-                color: '#fff', fontWeight: 700, fontSize: 14,
-                border: 'none', cursor: 'pointer',
-                boxShadow: '0 8px 28px rgba(37,99,235,0.40)',
-                letterSpacing: '-0.01em',
-              }}>
-                <Search size={16} /> Przeglądaj oferty <ArrowRight size={15} />
-              </button>
-            </a>
-            {!user && (
-              <Link href="/register" style={{ textDecoration: 'none' }}>
-                <button style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 8,
-                  padding: '13px 28px', borderRadius: 12,
-                  border: '1px solid rgba(255,255,255,0.12)',
-                  background: 'rgba(255,255,255,0.05)',
-                  color: '#cbd5e1', fontWeight: 600, fontSize: 14,
-                  cursor: 'pointer', letterSpacing: '-0.01em',
-                }}>
-                  Zarejestruj się za darmo
-                </button>
-              </Link>
-            )}
-          </div>
+          <SearchBar onSearch={handleSearch} currentParams={params} />
         </div>
+      </section>
 
-        {/* stats */}
-        <div className="anim-fade-in" style={{
-          position: 'absolute', bottom: 48,
-          left: '50%', transform: 'translateX(-50%)',
-          width: '100%', maxWidth: 540, padding: '0 24px',
-          boxSizing: 'border-box',
+      {/* WYNIKI */}
+      <section style={{ maxWidth: 1200, margin: "0 auto", padding: "28px 16px" }}>
+        {/* Pasek wyników + sortowanie */}
+        <div style={{
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+          marginBottom: 20, flexWrap: "wrap", gap: 12,
         }}>
-          <div style={{
-            background: 'rgba(255,255,255,0.03)',
-            backdropFilter: 'blur(16px)',
-            WebkitBackdropFilter: 'blur(16px)',
-            border: '1px solid rgba(255,255,255,0.07)',
-            borderRadius: 16,
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr 1fr',
-          }}>
-            {STATS.map(({ value, label }, idx) => (
-              <div key={label} style={{
-                padding: '16px 8px',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
-                borderRight: idx < 2 ? '1px solid rgba(255,255,255,0.06)' : 'none',
-              }}>
-                <span style={{ fontSize: 22, fontWeight: 800, color: '#fff', lineHeight: 1 }}>{value}</span>
-                <span style={{ fontSize: 11, color: '#475569', textAlign: 'center', lineHeight: 1.3 }}>{label}</span>
-              </div>
-            ))}
-          </div>
+          <span style={{ color: "#555", fontSize: 14 }}>
+            {loading ? "Ładowanie..." : `Znaleziono ${totalElements.toLocaleString("pl-PL")} ogłoszeń`}
+          </span>
+          <select
+            onChange={handleSort}
+            value={params.sort}
+            style={{
+              padding: "8px 12px", borderRadius: 8, border: "1px solid #ddd",
+              background: "#fff", fontSize: 14, cursor: "pointer",
+            }}
+          >
+            <option value="createdAt,desc">Najnowsze</option>
+            <option value="createdAt,asc">Najstarsze</option>
+            <option value="price,asc">Cena rosnąco</option>
+            <option value="price,desc">Cena malejąco</option>
+            <option value="area,asc">Powierzchnia rosnąco</option>
+            <option value="area,desc">Powierzchnia malejąco</option>
+          </select>
         </div>
 
-        {/* scroll hint */}
-        <div className="anim-float" style={{
-          position: 'absolute', bottom: 160, left: '50%',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
-          color: '#1e293b',
-        }}>
-          <span style={{ fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase' }}>scroll</span>
-          <div style={{ width: 1, height: 30, background: 'linear-gradient(to bottom, #1e293b, transparent)' }} />
-        </div>
+        {error && (
+          <div style={{ background: "#fee2e2", color: "#dc2626", padding: 16, borderRadius: 8, marginBottom: 16 }}>
+            {error}
+          </div>
+        )}
+
+        {/* SIATKA */}
+        {loading ? (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 20 }}>
+            {Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)}
+          </div>
+        ) : properties.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "80px 0", color: "#888" }}>
+            <div style={{ fontSize: 52, marginBottom: 16 }}>🏘️</div>
+            <p style={{ fontSize: 18 }}>Brak ogłoszeń spełniających kryteria</p>
+            <button
+              onClick={() => setParams({ page: 0, size: 12, sort: "createdAt,desc" })}
+              style={{ marginTop: 16, padding: "10px 24px", background: "#2d6a9f", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 14 }}
+            >
+              Resetuj filtry
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 20 }}>
+            {properties.map((p) => <PropertyCard key={p.id} property={p} />)}
+          </div>
+        )}
+
+        {/* PAGINACJA */}
+        {totalPages > 1 && (
+          <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 40, flexWrap: "wrap" }}>
+            <PageBtn onClick={() => handlePage(0)} disabled={(params.page ?? 0) === 0} label="«" />
+            <PageBtn onClick={() => handlePage((params.page ?? 1) - 1)} disabled={(params.page ?? 0) === 0} label="‹" />
+            {Array.from({ length: totalPages }, (_, i) => i)
+              .filter((i) => Math.abs(i - (params.page ?? 0)) <= 2)
+              .map((i) => (
+                <PageBtn key={i} onClick={() => handlePage(i)} disabled={false} label={String(i + 1)} active={i === params.page} />
+              ))}
+            <PageBtn onClick={() => handlePage((params.page ?? 0) + 1)} disabled={(params.page ?? 0) >= totalPages - 1} label="›" />
+            <PageBtn onClick={() => handlePage(totalPages - 1)} disabled={(params.page ?? 0) >= totalPages - 1} label="»" />
+          </div>
+        )}
       </section>
+    </main>
+  );
+}
 
-      {/* ══ FEATURES ══ */}
-      <section style={{ ...SECTION, padding: '100px 0', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-        <div style={INNER}>
-          <div style={{ textAlign: 'center', marginBottom: 60 }}>
-            <p style={{ color: '#3b82f6', fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12 }}>Dlaczego InduoHouse</p>
-            <h2 className="grad-text" style={{ fontSize: 'clamp(1.8rem, 3vw, 2.6rem)', fontWeight: 800, letterSpacing: '-0.025em' }}>Nieruchomości po nowemu</h2>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(270px, 1fr))', gap: 20 }}>
-            {FEATURES.map(({ icon: Icon, title, desc }) => (
-              <div key={title} className="card-lift" style={{
-                borderRadius: 18,
-                border: '1px solid rgba(255,255,255,0.06)',
-                background: 'rgba(255,255,255,0.025)',
-                padding: 28,
-              }}>
-                <div style={{
-                  width: 50, height: 50, borderRadius: 13,
-                  background: 'rgba(37,99,235,0.12)',
-                  border: '1px solid rgba(59,130,246,0.2)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  marginBottom: 22,
-                }}>
-                  <Icon size={22} color="#60a5fa" />
-                </div>
-                <h3 style={{ fontWeight: 700, color: '#f1f5f9', fontSize: 15, marginBottom: 10 }}>{title}</h3>
-                <p style={{ color: '#475569', fontSize: 13.5, lineHeight: 1.65 }}>{desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+function PageBtn({ onClick, disabled, label, active }: { onClick: () => void; disabled: boolean; label: string; active?: boolean }) {
+  return (
+    <button onClick={onClick} disabled={disabled} style={{
+      padding: "8px 14px", borderRadius: 8,
+      border: "1px solid " + (active ? "#2d6a9f" : "#ddd"),
+      background: active ? "#2d6a9f" : "#fff",
+      color: active ? "#fff" : disabled ? "#bbb" : "#333",
+      cursor: disabled ? "not-allowed" : "pointer",
+      fontWeight: active ? 700 : 400, fontSize: 14,
+    }}>
+      {label}
+    </button>
+  );
+}
 
-      {/* ══ LISTINGS ══ */}
-      <section
-        id="listings"
-        ref={listRef as React.RefObject<HTMLElement>}
-        style={{ ...SECTION, padding: '100px 0', borderTop: '1px solid rgba(255,255,255,0.04)' }}
-      >
-        <div style={INNER}>
-          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 52, flexWrap: 'wrap', gap: 16 }}>
-            <div>
-              <p style={{ color: '#3b82f6', fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }}>Dostępne oferty</p>
-              <h2 className="grad-text" style={{ fontSize: 'clamp(1.8rem, 3vw, 2.6rem)', fontWeight: 800, letterSpacing: '-0.025em' }}>Najnowsze ogłoszenia</h2>
-              {!isLoading && totalElements > 0 && (
-                <p style={{ color: '#334155', fontSize: 13, marginTop: 8 }}>
-                  Znaleziono <span style={{ color: '#94a3b8', fontWeight: 600 }}>{totalElements}</span> ofert
-                </p>
-              )}
-            </div>
-            <Link href="/properties" style={{ textDecoration: 'none' }}>
-              <button style={{
-                display: 'inline-flex', alignItems: 'center', gap: 7,
-                padding: '9px 18px', borderRadius: 10,
-                border: '1px solid rgba(255,255,255,0.08)',
-                background: 'transparent', color: '#94a3b8',
-                fontSize: 13, fontWeight: 500, cursor: 'pointer',
-              }}>
-                Zobacz wszystkie <ArrowRight size={14} />
-              </button>
-            </Link>
-          </div>
-
-          {isLoading ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 20 }}>
-              {Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)}
-            </div>
-          ) : error ? (
-            <div style={{ borderRadius: 16, border: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)', padding: '48px 24px', textAlign: 'center' }}>
-              <p style={{ color: '#94a3b8', marginBottom: 16 }}>{error}</p>
-              <button onClick={fetchProperties} style={{ padding: '9px 20px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#cbd5e1', fontSize: 13, cursor: 'pointer' }}>Spróbuj ponownie</button>
-            </div>
-          ) : properties.length === 0 ? (
-            <div style={{ borderRadius: 16, border: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)', padding: '72px 24px', textAlign: 'center' }}>
-              <Building2 size={44} color="#1e293b" style={{ margin: '0 auto 16px', display: 'block' }} />
-              <h3 style={{ color: '#cbd5e1', fontWeight: 700, marginBottom: 8 }}>Brak ofert</h3>
-              <p style={{ color: '#334155', fontSize: 13 }}>Nie znaleziono żadnych nieruchomości.</p>
-            </div>
-          ) : (
-            <>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 20 }}>
-                {properties.map(p => <PropertyCard key={p.id} property={p} />)}
-              </div>
-              {totalPages > 1 && (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 52 }}>
-                  <button
-                    onClick={() => changePage(currentPage - 1)}
-                    disabled={currentPage === 0}
-                    style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 6,
-                      padding: '9px 18px', borderRadius: 10,
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      background: 'transparent',
-                      color: currentPage === 0 ? '#1e293b' : '#94a3b8',
-                      fontSize: 13, fontWeight: 500,
-                      cursor: currentPage === 0 ? 'default' : 'pointer',
-                    }}
-                  >
-                    <ChevronLeft size={15} /> Poprzednia
-                  </button>
-                  <div style={{ display: 'flex', gap: 5 }}>
-                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                      const p = currentPage <= 2 ? i
-                        : currentPage >= totalPages - 3 ? totalPages - 5 + i
-                        : currentPage - 2 + i;
-                      if (p < 0 || p >= totalPages) return null;
-                      const active = p === currentPage;
-                      return (
-                        <button key={p} onClick={() => changePage(p)} style={{
-                          width: 36, height: 36, borderRadius: 8,
-                          fontSize: 13, fontWeight: 600,
-                          border: active ? 'none' : '1px solid rgba(255,255,255,0.08)',
-                          background: active ? '#2563eb' : 'transparent',
-                          color: active ? '#fff' : '#64748b',
-                          cursor: 'pointer',
-                          boxShadow: active ? '0 4px 16px rgba(37,99,235,0.4)' : 'none',
-                        }}>{p + 1}</button>
-                      );
-                    })}
-                  </div>
-                  <button
-                    onClick={() => changePage(currentPage + 1)}
-                    disabled={currentPage >= totalPages - 1}
-                    style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 6,
-                      padding: '9px 18px', borderRadius: 10,
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      background: 'transparent',
-                      color: currentPage >= totalPages - 1 ? '#1e293b' : '#94a3b8',
-                      fontSize: 13, fontWeight: 500,
-                      cursor: currentPage >= totalPages - 1 ? 'default' : 'pointer',
-                    }}
-                  >
-                    Następna <ChevronRight size={15} />
-                  </button>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </section>
-
-      {/* ══ FOOTER ══ */}
-      <footer style={{ ...SECTION, borderTop: '1px solid rgba(255,255,255,0.05)', padding: '48px 0' }}>
-        <div style={{ ...INNER, display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-          <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 9, textDecoration: 'none' }}>
-            <div style={{ width: 30, height: 30, borderRadius: 7, background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Building2 size={14} color="white" />
-            </div>
-            <span style={{ fontWeight: 800, color: '#fff', fontSize: 15, letterSpacing: '-0.02em' }}>Induo<span style={{ color: '#60a5fa' }}>House</span></span>
-          </Link>
-          <p style={{ color: '#1e293b', fontSize: 12 }}>© 2026 InduoHouse. Wszelkie prawa zastrzeżone.</p>
-          <div style={{ display: 'flex', gap: 20 }}>
-            <Link href="#" style={{ color: '#1e293b', fontSize: 12, textDecoration: 'none' }}>Polityka prywatności</Link>
-            <Link href="#" style={{ color: '#1e293b', fontSize: 12, textDecoration: 'none' }}>Regulamin</Link>
-          </div>
-        </div>
-      </footer>
+function SkeletonCard() {
+  return (
+    <div style={{ background: "#fff", borderRadius: 12, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
+      <div style={{ height: 180, background: "linear-gradient(90deg, #e8e8e8 25%, #f0f0f0 50%, #e8e8e8 75%)", backgroundSize: "200% 100%", animation: "shimmer 1.5s infinite" }} />
+      <div style={{ padding: 16 }}>
+        <div style={{ height: 16, background: "#e8e8e8", borderRadius: 4, marginBottom: 10 }} />
+        <div style={{ height: 13, background: "#e8e8e8", borderRadius: 4, width: "55%", marginBottom: 8 }} />
+        <div style={{ height: 13, background: "#e8e8e8", borderRadius: 4, width: "40%" }} />
+      </div>
     </div>
   );
 }

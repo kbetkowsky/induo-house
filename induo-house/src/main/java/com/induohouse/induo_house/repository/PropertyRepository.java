@@ -33,4 +33,13 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
     @EntityGraph(attributePaths = {"images", "user"})
     @Query("SELECT p FROM Property p WHERE p.id = :id")
     Optional<Property> findByIdWithImages(@Param("id") Long id);
+    @EntityGraph(attributePaths = {"images", "user"})
+    @Query("SELECT p FROM Property p WHERE p.propertyType = :type")
+    Page<Property> findByPropertyTypeWithDetails(
+            @Param("type") String type, Pageable pageable
+    );
+
+    @EntityGraph(attributePaths = {"images", "user"})
+    @Query("SELECT p FROM Property p ORDER BY p.createdAt DESC")
+    Page<Property> findAllWithDetails(Pageable pageable);
 }
