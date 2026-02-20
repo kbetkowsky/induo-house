@@ -3,8 +3,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { PropertyCard } from '@/components/PropertyCard';
-import Navbar from '@/components/Navbar';
+import PropertyCard from '@/components/PropertyCard';
 import { getProperties, PropertyFilters } from '@/lib/properties';
 import { Property } from '@/types';
 import {
@@ -33,7 +32,6 @@ export default function PropertiesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // --- state filtrów (inicjalizacja z URL params) ---
   const [city, setCity]               = useState(searchParams.get('city') ?? '');
   const [propertyType, setPropertyType] = useState(searchParams.get('propertyType') ?? '');
   const [minPrice, setMinPrice]       = useState(searchParams.get('minPrice') ?? '');
@@ -43,7 +41,6 @@ export default function PropertiesPage() {
   const [bedrooms, setBedrooms]       = useState(searchParams.get('bedrooms') ?? '');
   const [filtersOpen, setFiltersOpen] = useState(false);
 
-  // --- state wyników ---
   const [properties, setProperties]       = useState<Property[]>([]);
   const [isLoading, setIsLoading]         = useState(true);
   const [error, setError]                 = useState<string | null>(null);
@@ -53,14 +50,12 @@ export default function PropertiesPage() {
 
   const listRef = useRef<HTMLDivElement>(null);
 
-  // debounce pól tekstowych żeby nie strzelać requestem przy każdym znaku
   const debouncedCity     = useDebounce(city, 400);
   const debouncedMinPrice = useDebounce(minPrice, 500);
   const debouncedMaxPrice = useDebounce(maxPrice, 500);
   const debouncedMinArea  = useDebounce(minArea, 500);
   const debouncedMaxArea  = useDebounce(maxArea, 500);
 
-  // --- budowanie filtrów z aktualnego stanu ---
   const buildFilters = useCallback((): PropertyFilters => ({
     city:         debouncedCity || undefined,
     propertyType: propertyType || undefined,
@@ -76,7 +71,6 @@ export default function PropertiesPage() {
     debouncedMinArea, debouncedMaxArea, bedrooms, currentPage
   ]);
 
-  // --- fetch ---
   const fetchProperties = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -92,7 +86,6 @@ export default function PropertiesPage() {
     }
   }, [buildFilters]);
 
-  // --- sync URL z filtrami ---
   useEffect(() => {
     const params = new URLSearchParams();
     if (city)         params.set('city', city);
@@ -106,13 +99,11 @@ export default function PropertiesPage() {
     router.replace(`/properties?${params.toString()}`, { scroll: false });
   }, [city, propertyType, minPrice, maxPrice, minArea, maxArea, bedrooms, currentPage]);
 
-  // --- reset strony gdy zmienia się filtr (nie strona sama w sobie) ---
   useEffect(() => {
     setCurrentPage(0);
   }, [debouncedCity, propertyType, debouncedMinPrice, debouncedMaxPrice,
       debouncedMinArea, debouncedMaxArea, bedrooms]);
 
-  // --- efekt główny ---
   useEffect(() => {
     fetchProperties();
   }, [fetchProperties]);
@@ -137,22 +128,21 @@ export default function PropertiesPage() {
                          || minArea || maxArea || bedrooms;
 
   return (
-    <div style={{ minHeight: '100vh', background: '#080b14', color: '#f1f5f9' }}>
-      <Navbar />
+    <div style={{ minHeight: '100vh', background: 'var(--bg-base)', color: 'var(--text-primary)' }}>
 
       <div style={{ maxWidth: 1280, margin: '0 auto', padding: '100px 24px 60px', boxSizing: 'border-box' }}>
 
         {/* ── nagłówek ── */}
         <div style={{ marginBottom: 40 }}>
-          <p style={{ color: '#3b82f6', fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>
+          <p style={{ color: 'var(--accent-bright)', fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>
             Wszystkie oferty
           </p>
-          <h1 style={{ fontSize: 'clamp(1.8rem,3vw,2.6rem)', fontWeight: 800, letterSpacing: '-0.025em', margin: 0 }}>
+          <h1 style={{ fontSize: 'clamp(1.8rem,3vw,2.6rem)', fontWeight: 800, letterSpacing: '-0.025em', margin: 0, color: 'var(--text-primary)' }}>
             Przeglądaj nieruchomości
           </h1>
           {!isLoading && totalElements > 0 && (
-            <p style={{ color: '#475569', fontSize: 13, marginTop: 8 }}>
-              Znaleziono <span style={{ color: '#94a3b8', fontWeight: 600 }}>{totalElements}</span> ofert
+            <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 8 }}>
+              Znaleziono <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>{totalElements}</span> ofert
             </p>
           )}
         </div>
@@ -160,7 +150,7 @@ export default function PropertiesPage() {
         {/* ── pasek wyszukiwania ── */}
         <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: 220, position: 'relative' }}>
-            <Search size={15} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#475569', pointerEvents: 'none' }} />
+            <Search size={15} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
             <input
               type="text"
               placeholder="Szukaj po mieście…"
@@ -170,14 +160,8 @@ export default function PropertiesPage() {
             />
           </div>
 
-          <select
-            value={propertyType}
-            onChange={e => setPropertyType(e.target.value)}
-            style={inputStyle()}
-          >
-            {PROPERTY_TYPES.map(t => (
-              <option key={t.value} value={t.value}>{t.label}</option>
-            ))}
+          <select value={propertyType} onChange={e => setPropertyType(e.target.value)} style={inputStyle()}>
+            {PROPERTY_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
 
           <button
@@ -185,17 +169,15 @@ export default function PropertiesPage() {
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 7,
               padding: '0 18px', height: 44, borderRadius: 10,
-              border: `1px solid ${filtersOpen ? 'rgba(59,130,246,0.5)' : 'rgba(255,255,255,0.1)'}`,
-              background: filtersOpen ? 'rgba(37,99,235,0.12)' : 'rgba(255,255,255,0.04)',
-              color: filtersOpen ? '#60a5fa' : '#94a3b8',
+              border: `1px solid ${filtersOpen ? 'rgba(59,130,246,0.5)' : 'var(--border)'}`,
+              background: filtersOpen ? 'rgba(37,99,235,0.12)' : 'var(--bg-card)',
+              color: filtersOpen ? 'var(--accent-bright)' : 'var(--text-muted)',
               fontSize: 13, fontWeight: 500, cursor: 'pointer',
             }}
           >
             <SlidersHorizontal size={15} />
             Filtry
-            {hasActiveFilters && (
-              <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#3b82f6' }} />
-            )}
+            {hasActiveFilters && <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--accent)' }} />}
           </button>
 
           {hasActiveFilters && (
@@ -214,43 +196,30 @@ export default function PropertiesPage() {
           )}
         </div>
 
-        {/* ── rozwijany panel filtrów ── */}
+        {/* ── panel filtrów ── */}
         {filtersOpen && (
           <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
-            gap: 12, marginBottom: 24,
-            padding: 20, borderRadius: 14,
-            border: '1px solid rgba(255,255,255,0.07)',
-            background: 'rgba(255,255,255,0.02)',
+            display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+            gap: 12, marginBottom: 24, padding: 20, borderRadius: 14,
+            border: '1px solid var(--border-card)', background: 'var(--bg-surface)',
           }}>
-            <div>
-              <label style={labelStyle}>Cena min (zł)</label>
-              <input type="number" placeholder="np. 200 000" value={minPrice}
-                onChange={e => setMinPrice(e.target.value)} style={inputStyle()} />
-            </div>
-            <div>
-              <label style={labelStyle}>Cena max (zł)</label>
-              <input type="number" placeholder="np. 800 000" value={maxPrice}
-                onChange={e => setMaxPrice(e.target.value)} style={inputStyle()} />
-            </div>
-            <div>
-              <label style={labelStyle}>Pow. min (m²)</label>
-              <input type="number" placeholder="np. 40" value={minArea}
-                onChange={e => setMinArea(e.target.value)} style={inputStyle()} />
-            </div>
-            <div>
-              <label style={labelStyle}>Pow. max (m²)</label>
-              <input type="number" placeholder="np. 120" value={maxArea}
-                onChange={e => setMaxArea(e.target.value)} style={inputStyle()} />
-            </div>
+            {[
+              { label: 'Cena min (zł)', ph: 'np. 200 000', val: minPrice, set: setMinPrice },
+              { label: 'Cena max (zł)', ph: 'np. 800 000', val: maxPrice, set: setMaxPrice },
+              { label: 'Pow. min (m²)',  ph: 'np. 40',      val: minArea,  set: setMinArea  },
+              { label: 'Pow. max (m²)',  ph: 'np. 120',     val: maxArea,  set: setMaxArea  },
+            ].map(({ label, ph, val, set }) => (
+              <div key={label}>
+                <label style={labelStyle}>{label}</label>
+                <input type="number" placeholder={ph} value={val}
+                  onChange={e => set(e.target.value)} style={inputStyle()} />
+              </div>
+            ))}
             <div>
               <label style={labelStyle}>Liczba sypialni</label>
               <select value={bedrooms} onChange={e => setBedrooms(e.target.value)} style={inputStyle()}>
                 <option value="">Dowolna</option>
-                {[1, 2, 3, 4, 5].map(n => (
-                  <option key={n} value={n}>{n}+</option>
-                ))}
+                {[1,2,3,4,5].map(n => <option key={n} value={n}>{n}+</option>)}
               </select>
             </div>
           </div>
@@ -261,44 +230,42 @@ export default function PropertiesPage() {
           {isLoading ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(250px,1fr))', gap: 20 }}>
               {Array.from({ length: 12 }).map((_, i) => (
-                <div key={i} style={{ borderRadius: 16, border: '1px solid rgba(255,255,255,0.06)', background: '#0f1623', overflow: 'hidden' }}>
-                  <div style={{ paddingTop: '62.5%', background: 'rgba(255,255,255,0.04)', animation: 'pulse 1.5s ease-in-out infinite' }} />
+                <div key={i} style={{ borderRadius: 16, border: '1px solid var(--border-card)', background: 'var(--bg-surface)', overflow: 'hidden' }}>
+                  <div style={{ paddingTop: '62.5%', background: 'var(--bg-card)', animation: 'pulse 1.5s ease-in-out infinite' }} />
                   <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    <div style={{ height: 14, borderRadius: 6, width: '70%', background: 'rgba(255,255,255,0.04)', animation: 'pulse 1.5s ease-in-out infinite' }} />
-                    <div style={{ height: 12, borderRadius: 6, width: '45%', background: 'rgba(255,255,255,0.04)', animation: 'pulse 1.5s ease-in-out infinite' }} />
+                    <div style={{ height: 14, borderRadius: 6, width: '70%', background: 'var(--bg-card)', animation: 'pulse 1.5s ease-in-out infinite' }} />
+                    <div style={{ height: 12, borderRadius: 6, width: '45%', background: 'var(--bg-card)', animation: 'pulse 1.5s ease-in-out infinite' }} />
                   </div>
                 </div>
               ))}
             </div>
           ) : error ? (
-            <div style={{ textAlign: 'center', padding: '72px 24px', borderRadius: 16, border: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
-              <p style={{ color: '#94a3b8', marginBottom: 16 }}>{error}</p>
-              <button onClick={fetchProperties} style={{ padding: '9px 20px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#cbd5e1', fontSize: 13, cursor: 'pointer' }}>
+            <div style={{ textAlign: 'center', padding: '72px 24px', borderRadius: 16, border: '1px solid var(--border-card)', background: 'var(--bg-surface)' }}>
+              <p style={{ color: 'var(--text-muted)', marginBottom: 16 }}>{error}</p>
+              <button onClick={fetchProperties} style={{ padding: '9px 20px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 13, cursor: 'pointer' }}>
                 Spróbuj ponownie
               </button>
             </div>
           ) : properties.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '72px 24px', borderRadius: 16, border: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
-              <Building2 size={44} color="#1e293b" style={{ margin: '0 auto 16px', display: 'block' }} />
-              <h3 style={{ color: '#cbd5e1', fontWeight: 700, marginBottom: 8 }}>Brak wyników</h3>
-              <p style={{ color: '#334155', fontSize: 13 }}>Zmień kryteria wyszukiwania.</p>
+            <div style={{ textAlign: 'center', padding: '72px 24px', borderRadius: 16, border: '1px solid var(--border-card)', background: 'var(--bg-surface)' }}>
+              <Building2 size={44} style={{ margin: '0 auto 16px', display: 'block', color: 'var(--text-faint)' }} />
+              <h3 style={{ color: 'var(--text-secondary)', fontWeight: 700, marginBottom: 8 }}>Brak wyników</h3>
+              <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Zmień kryteria wyszukiwania.</p>
               {hasActiveFilters && (
-                <button onClick={clearFilters} style={{ marginTop: 16, padding: '9px 20px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#cbd5e1', fontSize: 13, cursor: 'pointer' }}>
+                <button onClick={clearFilters} style={{ marginTop: 16, padding: '9px 20px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 13, cursor: 'pointer' }}>
                   Wyczyść filtry
                 </button>
               )}
             </div>
           ) : (
             <>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(250px,1fr))', gap: 20 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(260px,1fr))', gap: 20 }}>
                 {properties.map(p => <PropertyCard key={p.id} property={p} />)}
               </div>
 
-              {/* paginacja */}
               {totalPages > 1 && (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 52 }}>
-                  <button onClick={() => changePage(currentPage - 1)} disabled={currentPage === 0}
-                    style={pageBtn(currentPage === 0)}>
+                  <button onClick={() => changePage(currentPage - 1)} disabled={currentPage === 0} style={pageBtn(currentPage === 0)}>
                     <ChevronLeft size={15} /> Poprzednia
                   </button>
                   <div style={{ display: 'flex', gap: 5 }}>
@@ -311,16 +278,15 @@ export default function PropertiesPage() {
                       return (
                         <button key={p} onClick={() => changePage(p)} style={{
                           width: 36, height: 36, borderRadius: 8, fontSize: 13, fontWeight: 600,
-                          border: active ? 'none' : '1px solid rgba(255,255,255,0.08)',
-                          background: active ? '#2563eb' : 'transparent',
-                          color: active ? '#fff' : '#64748b', cursor: 'pointer',
-                          boxShadow: active ? '0 4px 16px rgba(37,99,235,0.4)' : 'none',
+                          border: active ? 'none' : '1px solid var(--border)',
+                          background: active ? 'var(--accent)' : 'transparent',
+                          color: active ? '#fff' : 'var(--text-muted)', cursor: 'pointer',
+                          boxShadow: active ? '0 4px 16px var(--accent-shadow)' : 'none',
                         }}>{p + 1}</button>
                       );
                     })}
                   </div>
-                  <button onClick={() => changePage(currentPage + 1)} disabled={currentPage >= totalPages - 1}
-                    style={pageBtn(currentPage >= totalPages - 1)}>
+                  <button onClick={() => changePage(currentPage + 1)} disabled={currentPage >= totalPages - 1} style={pageBtn(currentPage >= totalPages - 1)}>
                     Następna <ChevronRight size={15} />
                   </button>
                 </div>
@@ -333,20 +299,19 @@ export default function PropertiesPage() {
   );
 }
 
-// ── style helpers ──────────────────────────────────────────────────────────────
 function inputStyle(extra: React.CSSProperties = {}): React.CSSProperties {
   return {
     width: '100%', height: 44, borderRadius: 10, boxSizing: 'border-box',
-    border: '1px solid rgba(255,255,255,0.1)',
-    background: 'rgba(255,255,255,0.04)',
-    color: '#f1f5f9', fontSize: 13, padding: '0 14px',
+    border: '1px solid var(--border)',
+    background: 'var(--bg-card)',
+    color: 'var(--text-primary)', fontSize: 13, padding: '0 14px',
     outline: 'none', appearance: 'none',
     ...extra,
   };
 }
 
 const labelStyle: React.CSSProperties = {
-  display: 'block', fontSize: 11, color: '#475569',
+  display: 'block', fontSize: 11, color: 'var(--text-muted)',
   marginBottom: 6, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase',
 };
 
@@ -354,9 +319,9 @@ function pageBtn(disabled: boolean): React.CSSProperties {
   return {
     display: 'inline-flex', alignItems: 'center', gap: 6,
     padding: '9px 18px', borderRadius: 10,
-    border: '1px solid rgba(255,255,255,0.08)',
+    border: '1px solid var(--border)',
     background: 'transparent',
-    color: disabled ? '#1e293b' : '#94a3b8',
+    color: disabled ? 'var(--text-faint)' : 'var(--text-secondary)',
     fontSize: 13, fontWeight: 500,
     cursor: disabled ? 'default' : 'pointer',
   };
