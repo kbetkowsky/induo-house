@@ -1,5 +1,4 @@
 'use client';
-
 import { useEffect, useState } from 'react';
 import { ArrowUp } from 'lucide-react';
 
@@ -19,26 +18,20 @@ export default function ScrollToTop() {
       onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
       title="Wróć na górę"
       style={{
-        position: 'fixed', bottom: 28, right: 28, zIndex: 90,
-        width: 42, height: 42, borderRadius: 13,
+        position: 'fixed', bottom: 28, right: 28, zIndex: 200,
+        width: 44, height: 44, borderRadius: 12,
         background: 'var(--accent)',
-        border: '1px solid var(--border-hover)',
+        border: 'none', cursor: 'pointer',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: '#fff', cursor: 'pointer',
-        boxShadow: '0 8px 24px var(--accent-shadow)',
-        transition: 'transform 0.2s, box-shadow 0.2s',
-        animation: 'fadeUp 0.25s ease both',
+        color: '#fff',
+        boxShadow: '0 4px 20px var(--accent-shadow)',
+        transition: 'background 0.2s, transform 0.2s',
+        animation: 'fadeIn 0.25s ease',
       }}
-      onMouseEnter={e => {
-        e.currentTarget.style.transform = 'translateY(-3px)';
-        e.currentTarget.style.boxShadow = '0 12px 32px var(--accent-shadow)';
-      }}
-      onMouseLeave={e => {
-        e.currentTarget.style.transform = 'translateY(0)';
-        e.currentTarget.style.boxShadow = '0 8px 24px var(--accent-shadow)';
-      }}
+      onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent-hover)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+      onMouseLeave={e => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.transform = 'translateY(0)'; }}
     >
-      <ArrowUp style={{ width: 17, height: 17 }} />
+      <ArrowUp size={18} />
     </button>
   );
 }
