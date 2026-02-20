@@ -8,33 +8,23 @@ import { PropertyListResponse, PageResponse, SearchParams } from "@/types/proper
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
 async function fetchProperties(params: SearchParams): Promise<PageResponse<PropertyListResponse>> {
-  // Buduj query string dla paginacji i sortowania
-  const pageable = new URLSearchParams();
-  pageable.set("page", String(params.page ?? 0));
-  pageable.set("size", String(params.size ?? 12));
-  if (params.sort) pageable.set("sort", params.sort);
+  const query = new URLSearchParams();
+  query.set("page", String(params.page ?? 0));
+  query.set("size", String(params.size ?? 12));
+  if (params.sort) query.set("sort", params.sort);
 
-  let url: string;
+  if (params.city)            query.set("city", params.city);
+  if (params.propertyType)    query.set("propertyType", params.propertyType);
+  if (params.transactionType) query.set("transactionType", params.transactionType);
+  if (params.minPrice !== undefined) query.set("minPrice", String(params.minPrice));
+  if (params.maxPrice !== undefined) query.set("maxPrice", String(params.maxPrice));
 
-  // Wybór endpointu na podstawie aktywnych filtrów
-  if (params.minPrice !== undefined || params.maxPrice !== undefined) {
-    pageable.set("minPrice", String(params.minPrice ?? 0));
-    pageable.set("maxPrice", String(params.maxPrice ?? 99999999));
-    url = `${API_BASE}/api/properties/price-range?${pageable.toString()}`;
-  } else if (params.city) {
-    url = `${API_BASE}/api/properties/city/${encodeURIComponent(params.city)}?${pageable.toString()}`;
-  } else if (params.propertyType) {
-    url = `${API_BASE}/api/properties/type/${encodeURIComponent(params.propertyType)}?${pageable.toString()}`;
-  } else {
-    url = `${API_BASE}/api/properties?${pageable.toString()}`;
-  }
+  const url = `${API_BASE}/api/properties/search?${query.toString()}`;
 
   const res = await fetch(url, { credentials: "include" });
   if (!res.ok) throw new Error("Błąd pobierania ogłoszeń");
   const data = await res.json();
 
-  // /city, /type, /price-range zwracają natywny Spring Page (inne pole "number")
-  // /api/properties zwraca PageResponse (pole "currentPage")
   if ("number" in data) {
     return {
       content: data.content,
