@@ -41,6 +41,15 @@ public class PropertyController {
         this.fileStorageService = fileStorageService;
     }
 
+    @GetMapping("/api/properties/search")
+    public ResponseEntity<Page<PropertyListResponse>> search(
+            @RequestParam(required = false) String city,
+            @RequestParam(required = false) String propertyType,
+            Pageable pageable
+    ) {
+        return ResponseEntity.ok(propertyService.search(city, propertyType, pageable));
+    }
+
     @GetMapping("{id}")
     public ResponseEntity<PropertyResponse> getById(@PathVariable Long id) {
         try {

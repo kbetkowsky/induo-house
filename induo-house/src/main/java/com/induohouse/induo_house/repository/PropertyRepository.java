@@ -24,7 +24,7 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
     Page<Property> findByPropertyType(String propertyType, Pageable pageable);
     Page<Property> findByPriceBetween(BigDecimal minPrice, BigDecimal maxPrice, Pageable pageable);
     Page<Property> findByAreaGreaterThanEqual(BigDecimal minArea, Pageable pageable);
-    Page<Property> findByCityAndPropertyType(String city, String propertyType, Pageable pageable);
+    //Page<Property> findByCityAndPropertyType(String city, String propertyType, Pageable pageable);
     @Query("SELECT p FROM Property p ORDER BY p.createdAt DESC")
     Page<Property> findAllPaged(Pageable pageable);
     @EntityGraph(attributePaths = {"images", "user"})
@@ -42,4 +42,10 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
     @EntityGraph(attributePaths = {"images", "user"})
     @Query("SELECT p FROM Property p ORDER BY p.createdAt DESC")
     Page<Property> findAllWithDetails(Pageable pageable);
+    @Query("SELECT p FROM Property p WHERE p.city = :city AND CAST(p.propertyType AS string) = :propertyType")
+    Page<Property> findByCityAndPropertyType(
+            @Param("city") String city,
+            @Param("propertyType") String propertyType,
+            Pageable pageable
+    );
 }

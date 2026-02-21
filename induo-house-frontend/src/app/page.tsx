@@ -16,7 +16,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 async function fetchLatest(): Promise<PropertyListResponse[]> {
   try {
     const res = await fetch(
-      `${API_BASE}/api/properties/search?page=0&size=6&sort=createdAt,desc`,
+      `${API_BASE}/api/properties?page=0&size=6&sort=createdAt,desc`,
       { credentials: 'include', cache: 'no-store' }
     );
     if (!res.ok) return [];
@@ -28,7 +28,7 @@ async function fetchLatest(): Promise<PropertyListResponse[]> {
 async function fetchStats(): Promise<{ total: number; cities: number; agents: number }> {
   try {
     const res = await fetch(
-      `${API_BASE}/api/properties/search?page=0&size=1`,
+      `${API_BASE}/api/properties?page=0&size=1`,
       { credentials: 'include', cache: 'no-store' }
     );
     if (!res.ok) return { total: 0, cities: 0, agents: 0 };

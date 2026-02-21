@@ -201,6 +201,39 @@ public class PropertyService {
         return response;
     }
 
+    public Page<PropertyListResponse> search(String city, String propertyType, Pageable pageable) {
+        Page<Property> page;
+
+        if (city != null && !city.isBlank() && propertyType != null && !propertyType.isBlank()) {
+            page = propertyRepository.findByCityAndPropertyType(city, propertyType, pageable);
+        } else if (city != null && !city.isBlank()) {
+            page = propertyRepository.findByCity(city, pageable);
+        } else if (propertyType != null && !propertyType.isBlank()) {
+            page = propertyRepository.findByPropertyType(propertyType, pageable);
+        } else {
+            page = propertyRepository.findAllPaged(pageable);
+        }
+
+        List<Long> ids = page.getContent().stream()
+                .map(Property::getId)
+                .toList();
+
+        if (ids.isEmpty()) {
+            return new PageImpl<>(List.of(), pageable, 0);
+        }
+
+        List<Property> fullProperties = propertyRepository.findAllWithImagesByIds(ids);
+        Map<Long, Property> propertyMap = fullProperties.stream()
+                .collect(Collectors.toMap(Property::getId, p -> p));
+
+        List<PropertyListResponse> responses = page.getContent().stream()
+                .map(p -> propertyMapper.toListResponse(propertyMap.get(p.getId())))
+                .toList();
+
+        return new PageImpl<>(responses, pageable, page.getTotalElements());
+    }
+
+
     public void deleteImage(Long propertyId, Long imageId, Long userId) throws IOException {
         Property property = propertyRepository.findById(propertyId)
                 .orElseThrow(() -> new RuntimeException("Nie ma takiego ogloszenia"));

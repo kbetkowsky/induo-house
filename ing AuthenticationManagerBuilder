@@ -1,0 +1,30 @@
+[33m6ca806e[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m feat: add property card badge and related listings
+[33m09cd92f[m feat: add 404 page and favorites functionality
+[33m1c60c15[m feat: update register page UI
+[33m9856cc8[m feat: update login page UI
+[33m066f39d[m feat: redesign homepage and add scroll to top
+[33mf6efe2b[m fix: property card import
+[33m15fa93c[m feat: add photo gallery to property detail
+[33m8ee06cc[m feat: redesign property detail page
+[33mc558518[m feat: add dark theme and CSS variables
+[33mc899e85[m feat: redesign auth pages
+[33m1377b83[m feat: add property detail components
+[33m5f8f2ce[m Working /before frontend changes
+[33mbc57695[m added some dummy data
+[33mb10122f[m fix: polish chars + stronger parallax effect
+[33mdd2762b[m feat: add mouse parallax effect to hero background orbs
+[33m3936fff[m feat: full frontend rewrite - pure inline styles, fully centered responsive layout
+[33m256fc2b[m fix: rebuild layout - full width centering, responsive design
+[33mdab79ec[m added front2
+[33m488c3f6[m added front
+[33m38dec7e[m added some data
+[33mc338291[m feat: fix property image display on listing page
+[33m96dd7f4[m findAllPaged + findAllWithImagesByIds
+[33mc426505[m added photo validation
+[33mc03299b[m add
+[33m609f982[m added some repo
+[33m2808d02[m add HttpOnly cookie auth and frontend
+[33mc714f41[m added integration tests and controller tests
+[33mb3b2eee[m added unity tests
+[33m54f2803[m Add custom exceptions and improve error handling
+[33mea58664[m Fix SecurityConfig using AuthenticationManagerBuilder

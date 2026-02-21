@@ -33,7 +33,7 @@ export default function SimilarProperties({ currentId, city, propertyType }: Pro
     const load = async () => {
       try {
         const res = await fetch(
-          `${API_BASE}/api/properties/search?city=${encodeURIComponent(city)}&propertyType=${propertyType}&size=5&page=0`,
+          `${API_BASE}/api/properties?city=${encodeURIComponent(city)}&propertyType=${propertyType}&size=5&page=0`,
           { credentials: 'include' }
         );
         const data = await res.json();

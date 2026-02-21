@@ -9,10 +9,11 @@ import { useAuth } from '@/hooks/useAuth';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import SimilarListings from '@/components/SimilarListings';
+import PropertyMap from '@/components/PropertyMap';
 import {
   MapPin, Square, BedDouble, Layers, Phone, Mail,
   ChevronLeft, ChevronRight, Building2, Trash2, Pencil,
-  X, Heart, Share2, ArrowLeft, Grid2X2
+  X, Heart, Share2, Grid2X2
 } from 'lucide-react';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
@@ -28,12 +29,12 @@ export default function PropertyDetailPage() {
   const { user } = useAuth();
   const id = Number(params.id);
 
-  const [property, setProperty]       = useState<Property | null>(null);
-  const [error, setError]             = useState<string | null>(null);
-  const [isLoading, setIsLoading]     = useState(true);
-  const [activeImage, setActiveImage] = useState<PropertyImage | null>(null);
-  const [isDeleting, setIsDeleting]   = useState(false);
-  const [fav, setFav]                 = useState(false);
+  const [property, setProperty]         = useState<Property | null>(null);
+  const [error, setError]               = useState<string | null>(null);
+  const [isLoading, setIsLoading]       = useState(true);
+  const [activeImage, setActiveImage]   = useState<PropertyImage | null>(null);
+  const [isDeleting, setIsDeleting]     = useState(false);
+  const [fav, setFav]                   = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIdx, setLightboxIdx]   = useState(0);
 
@@ -108,7 +109,6 @@ export default function PropertyDetailPage() {
   const images    = property?.images ?? [];
   const hasImages = images.length > 0;
 
-  /* Skeleton loading */
   if (isLoading) return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-base)', paddingTop: 88, paddingBottom: 80 }}>
       <style>{`
@@ -141,15 +141,15 @@ export default function PropertyDetailPage() {
     ['Typ nieruchomości', TYPE_MAP[property.propertyType] ?? property.propertyType],
     ['Oferta',           translateTransaction(property.transactionType)],
     ['Powierzchnia',     `${property.area} m²`],
-    ...(property.numberOfRooms ? [['Liczba pokoi', String(property.numberOfRooms)] as [string,string]] : []),
-    ...(property.floor != null  ? [['Piętro', `${property.floor}${property.totalFloors ? ` / ${property.totalFloors}` : ''}`] as [string,string]] : []),
-    ['Miasto',   property.city],
-    ...(property.street     ? [['Ulica',        property.street]     as [string,string]] : []),
-    ...(property.postalCode ? [['Kod pocztowy', property.postalCode] as [string,string]] : []),
+    ...(property.numberOfRooms ? [['Liczba pokoi', String(property.numberOfRooms)] as [string, string]] : []),
+    ...(property.floor != null  ? [['Piętro', `${property.floor}${property.totalFloors ? ` / ${property.totalFloors}` : ''}`] as [string, string]] : []),
+    ['Miasto', property.city],
+    ...(property.street     ? [['Ulica',        property.street]     as [string, string]] : []),
+    ...(property.postalCode ? [['Kod pocztowy', property.postalCode] as [string, string]] : []),
   ];
 
   const [mainImg, ...restImgs] = images;
-  const gridImgs = restImgs.slice(0, 4);
+  const gridImgs  = restImgs.slice(0, 4);
   const remaining = images.length - 5;
 
   return (
@@ -276,8 +276,6 @@ export default function PropertyDetailPage() {
           content: ''; display: block; width: 3px; height: 18px;
           border-radius: 99px; background: var(--accent);
         }
-
-        /* Breadcrumbs */
         .breadcrumbs {
           display: flex; align-items: center; gap: 6px;
           font-size: 13px; color: var(--text-muted);
@@ -320,7 +318,8 @@ export default function PropertyDetailPage() {
           {images.length > 1 && (
             <div style={{ position: 'absolute', bottom: 18, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 6 }}>
               {images.map((img, i) => (
-                <button key={img.id} onClick={e => { e.stopPropagation(); setLightboxIdx(i); }} style={{ width: 48, height: 34, borderRadius: 6, overflow: 'hidden', border: `2px solid ${i === lightboxIdx ? '#fff' : 'transparent'}`, opacity: i === lightboxIdx ? 1 : 0.5, cursor: 'pointer', padding: 0, background: 'none', transition: 'opacity 0.2s, border-color 0.2s', flexShrink: 0 }}>
+                <button key={img.id} onClick={e => { e.stopPropagation(); setLightboxIdx(i); }}
+                  style={{ width: 48, height: 34, borderRadius: 6, overflow: 'hidden', border: `2px solid ${i === lightboxIdx ? '#fff' : 'transparent'}`, opacity: i === lightboxIdx ? 1 : 0.5, cursor: 'pointer', padding: 0, background: 'none', transition: 'opacity 0.2s, border-color 0.2s', flexShrink: 0 }}>
                   <img src={imgUrl(img.url)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </button>
               ))}
@@ -363,7 +362,7 @@ export default function PropertyDetailPage() {
             </div>
           </div>
 
-          {/* AIRBNB GALLERY */}
+          {/* GALLERY */}
           {hasImages ? (
             <div style={{ position: 'relative', marginBottom: 28 }}>
               <div className="airbnb-gallery">
@@ -418,6 +417,8 @@ export default function PropertyDetailPage() {
 
           {/* MAIN GRID */}
           <div className="detail-grid">
+
+            {/* LEFT */}
             <div>
               <div className="section-card">
                 <p className="section-title">Opis ogłoszenia</p>
@@ -425,6 +426,7 @@ export default function PropertyDetailPage() {
                   {property.description || 'Brak opisu.'}
                 </p>
               </div>
+
               <div className="section-card">
                 <p className="section-title" style={{ marginBottom: 14 }}>Szczegóły nieruchomości</p>
                 <div style={{ marginTop: 14 }}>
@@ -434,6 +436,18 @@ export default function PropertyDetailPage() {
                       <div className="detail-value">{value}</div>
                     </div>
                   ))}
+                </div>
+              </div>
+
+              {/* ✅ MAPA - osobna sekcja, poza .map() */}
+              <div className="section-card" style={{ padding: 20 }}>
+                <p className="section-title" style={{ marginBottom: 16 }}>Lokalizacja</p>
+                <div style={{ marginTop: 16 }}>
+                  <PropertyMap
+                    city={property.city}
+                    street={property.street}
+                    postalCode={property.postalCode}
+                  />
                 </div>
               </div>
             </div>
@@ -469,9 +483,9 @@ export default function PropertyDetailPage() {
                 </div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 20 }}>
                   {[
-                    property.area           && { icon: <Square size={13}/>,    label: `${property.area} m²` },
-                    property.numberOfRooms  && { icon: <BedDouble size={13}/>,  label: `${property.numberOfRooms} pok.` },
-                    property.floor != null  && { icon: <Layers size={13}/>,    label: `Piętro ${property.floor}${property.totalFloors ? `/${property.totalFloors}` : ''}` },
+                    property.area          && { icon: <Square size={13} />,   label: `${property.area} m²` },
+                    property.numberOfRooms && { icon: <BedDouble size={13} />, label: `${property.numberOfRooms} pok.` },
+                    property.floor != null && { icon: <Layers size={13} />,   label: `Piętro ${property.floor}${property.totalFloors ? `/${property.totalFloors}` : ''}` },
                   ].filter(Boolean).map((item: any, i) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--text-secondary)', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 10px' }}>
                       {item.icon} {item.label}
