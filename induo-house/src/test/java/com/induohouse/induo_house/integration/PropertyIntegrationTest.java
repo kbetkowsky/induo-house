@@ -1,4 +1,4 @@
-package com.induohouse.induo_house;
+package com.induohouse.induo_house.integration;
 
 import com.induohouse.induo_house.entity.Property;
 import com.induohouse.induo_house.entity.User;

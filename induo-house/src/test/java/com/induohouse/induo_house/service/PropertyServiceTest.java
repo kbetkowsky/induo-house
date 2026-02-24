@@ -1,4 +1,4 @@
-package com.induohouse.induo_house;
+package com.induohouse.induo_house.service;
 
 import com.induohouse.induo_house.dto.request.CreatePropertyRequest;
 import com.induohouse.induo_house.dto.response.PropertyResponse;
