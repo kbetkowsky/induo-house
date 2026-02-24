@@ -7,6 +7,7 @@ import com.induohouse.induo_house.dto.user.UserDto;
 import com.induohouse.induo_house.entity.User;
 import com.induohouse.induo_house.exception.EmailAlreadyExistsException;
 import com.induohouse.induo_house.exception.UnauthorizedException;
+import com.induohouse.induo_house.exception.UserNotFoundException;
 import com.induohouse.induo_house.repository.UserRepository;
 import com.induohouse.induo_house.security.JwtService;
 import org.junit.jupiter.api.AfterEach;
@@ -116,6 +117,25 @@ class AuthServiceTest {
         assertThrows(BadCredentialsException.class, () -> authService.login(req));
         verify(userRepository, never()).findByEmail(any());
     }
+
+    @Test
+    void login_ShouldThrow_WhenUserNotFoundAfterAuthentication() {
+        LoginRequest req = new LoginRequest();
+        req.setEmail("znikajacy@test.com");
+        req.setPassword("haslo");
+
+        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+                .thenReturn(mock(Authentication.class));
+
+        when(userRepository.findByEmail("znikajacy@test.com"))
+                .thenReturn(Optional.empty());
+
+        assertThrows(UserNotFoundException.class, () -> authService.login(req));
+
+        verify(jwtService, never()).generateToken(any());
+        verify(jwtService, never()).generateRefreshToken(any());
+    }
+
 
     @Test
     void getCurrentUser_ShouldReturnDto_WhenAuthenticated() {
