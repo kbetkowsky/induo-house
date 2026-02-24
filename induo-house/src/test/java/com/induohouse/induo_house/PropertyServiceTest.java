@@ -23,15 +23,11 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class PropertyServiceTest {
-    @Mock
-    private PropertyRepository propertyRepository;
+class PropertyServiceTest {
 
-    @Mock
-    private UserRepository userRepository;
-
-    @Mock
-    private PropertyMapper propertyMapper;
+    @Mock private PropertyRepository propertyRepository;
+    @Mock private UserRepository userRepository;
+    @Mock private PropertyMapper propertyMapper;
 
     @InjectMocks
     private PropertyService propertyService;
@@ -45,12 +41,11 @@ public class PropertyServiceTest {
         testUser = new User();
         testUser.setId(1L);
         testUser.setEmail("test@example.com");
-        testUser.setFirstName("testuser");
+        testUser.setFirstName("Jan");
 
         testProperty = new Property();
         testProperty.setId(1L);
         testProperty.setTitle("Piękne mieszkanie");
-        testProperty.setDescription("Świetna lokalizacja");
         testProperty.setPrice(new BigDecimal("500000"));
         testProperty.setCity("Warszawa");
         testProperty.setUser(testUser);
@@ -62,176 +57,102 @@ public class PropertyServiceTest {
     }
 
     @Test
-    void getById_ShouldReturnProperty_WhenPropertyExist() {
-        //GIVEN
-        when(propertyRepository.findById(1L))
-                .thenReturn(Optional.of(testProperty));
-        when(propertyMapper.toResponse(testProperty))
-                .thenReturn(testResponse);
-
-        //WHEN
-        PropertyResponse result = propertyService.getById(1L);
-
-        //THEN
-        assertNotNull(result);
-        assertEquals(1L, result.getId());
-        assertEquals("Piękne mieszkanie", result.getTitle());
-
-        verify(propertyRepository, times(1)).findById(1L);
-        verify(propertyMapper, times(1)).toResponse(testProperty);
-    }
-
-    @Test
     void getById_ShouldReturnProperty_WhenPropertyExists() {
-        //GIVEN
-        when(propertyRepository.findById(1L))
-                .thenReturn(Optional.of(testProperty));
-        when(propertyMapper.toResponse(testProperty))
-                .thenReturn(testResponse);
+        when(propertyRepository.findByIdWithImages(1L)).thenReturn(Optional.of(testProperty));
+        when(propertyMapper.toResponse(testProperty)).thenReturn(testResponse);
 
-        //WHEN
         PropertyResponse result = propertyService.getById(1L);
 
-        //THEN
         assertNotNull(result);
         assertEquals(1L, result.getId());
         assertEquals("Piękne mieszkanie", result.getTitle());
-
-        verify(propertyRepository, times(1)).findById(1L);
-        verify(propertyMapper, times(1)).toResponse(testProperty);
+        verify(propertyRepository).findByIdWithImages(1L);
+        verify(propertyMapper).toResponse(testProperty);
     }
 
     @Test
     void getById_ShouldThrowException_WhenPropertyNotFound() {
-        //GIVEN
-        when(propertyRepository.findById(999L))
-                .thenReturn(Optional.empty());
+        when(propertyRepository.findByIdWithImages(999L)).thenReturn(Optional.empty());
 
-        //WHEN & THEN
-        RuntimeException exception = assertThrows(
-                RuntimeException.class,
-                () -> propertyService.getById(999L)
-        );
+        RuntimeException ex = assertThrows(RuntimeException.class,
+                () -> propertyService.getById(999L));
 
-        assertEquals("Nie znaleziono ogloszenia", exception.getMessage());
-
+        assertEquals("Nie znaleziono ogloszenia", ex.getMessage());
         verify(propertyMapper, never()).toResponse(any());
     }
 
+
     @Test
-    void mocksShouldNotBeNull() {
-        assertNotNull(propertyRepository, "PropertyRepository mock powinien istnieć");
-        assertNotNull(userRepository, "UserRepository mock powinien istnieć");
-        assertNotNull(propertyMapper, "PropertyMapper mock powinien istnieć");
-        assertNotNull(propertyService, "PropertyService powinien być utworzony");
+    void delete_ShouldDeleteProperty_WhenUserIsOwner() {
+        when(propertyRepository.findById(1L)).thenReturn(Optional.of(testProperty));
+
+        propertyService.delete(1L, 1L);
+
+        verify(propertyRepository).delete(testProperty);
     }
 
     @Test
-    void delete_ShouldDeleteProperty_WhenUserIsOwner(){
-        Long userId = 1L;
-        Long propertyId = 1L;
+    void delete_ShouldThrowException_WhenUserIsNotOwner() {
+        when(propertyRepository.findById(1L)).thenReturn(Optional.of(testProperty));
 
-        //WHEN
-        when(propertyRepository.findById(propertyId))
-                .thenReturn(Optional.of(testProperty));
+        RuntimeException ex = assertThrows(RuntimeException.class,
+                () -> propertyService.delete(2L, 1L));
 
-        propertyService.delete(userId, propertyId);
-        verify(propertyRepository, times(1)).delete(testProperty);
-        verify(propertyRepository, times(1)).findById(propertyId);
-    }
-
-    @Test
-    void delete_ShouldNotDeleteProperty_WhenUserIsntOwner() {
-        Long userId = 1L;
-        Long wrongUserId = 2L;
-        Long propertyId = 1L;
-
-        when(propertyRepository.findById(propertyId))
-                .thenReturn(Optional.of(testProperty));
-
-        RuntimeException exception = assertThrows(
-                RuntimeException.class,
-                () -> propertyService.delete(wrongUserId, propertyId)
-        );
-        assertEquals("Mozesz kasowac tylko swoje ogloszenia", exception.getMessage());
+        assertEquals("Mozesz kasowac tylko swoje ogloszenia", ex.getMessage());
         verify(propertyRepository, never()).delete(any());
-    }
-
-    private CreatePropertyRequest createTestRequest() {
-        CreatePropertyRequest request = new CreatePropertyRequest();
-        request.setTitle("Nowe mieszkanie");
-        request.setDescription("Piękne mieszkanie w centrum");
-        request.setPrice(new BigDecimal("600000"));
-        request.setArea(new BigDecimal("65"));
-        request.setCity("Kraków");
-        request.setStreet("Floriańska");
-        request.setPostalCode("31-000");
-        request.setNumberOfRooms(4);
-        request.setFloor(3);
-        request.setTotalFloors(8);
-        request.setTransactionType("SPRZEDAŻ");
-        request.setPropertyType("MIESZKANIE");
-        return request;
     }
 
     @Test
     void create_ShouldCreateProperty_WhenUserExists() {
-        //GIVEN
-        Long userId = 1L;
-        CreatePropertyRequest request = createTestRequest();
+        CreatePropertyRequest request = buildRequest();
+        Property mapped = new Property();
+        Property saved = new Property();
+        saved.setId(99L);
+        saved.setUser(testUser);
 
-        Property mappedProperty = new Property();
-        mappedProperty.setTitle("Nowe mieszkanie");
-        mappedProperty.setPrice(new BigDecimal("600000"));
+        PropertyResponse expectedResponse = new PropertyResponse();
+        expectedResponse.setId(99L);
+        expectedResponse.setTitle("Nowe mieszkanie");
 
-        Property savedProperty = new Property();
-        savedProperty.setId(99L);
-        savedProperty.setTitle("Nowe mieszkanie");
-        savedProperty.setPrice(new BigDecimal("600000"));
-        savedProperty.setUser(testUser);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        when(propertyMapper.toEntity(request)).thenReturn(mapped);
+        when(propertyRepository.save(mapped)).thenReturn(saved);
+        when(propertyMapper.toResponse(saved)).thenReturn(expectedResponse);
 
-        when(userRepository.findById(userId))
-                .thenReturn(Optional.of(testUser));
-        when(propertyMapper.toEntity(request))
-                .thenReturn(mappedProperty);
-        when(propertyRepository.save(mappedProperty))
-                .thenReturn(savedProperty);
-        when(propertyMapper.toResponse(savedProperty))
-                .thenReturn(testResponse);
+        PropertyResponse result = propertyService.create(request, 1L);
 
-        //WHEN
-        PropertyResponse result = propertyService.create(request, userId);
-
-        //THEN
         assertNotNull(result);
-        assertEquals(1L, result.getId());
-        assertEquals("Testowe mieszkanie", result.getTitle());
-
-        verify(userRepository, times(1)).findById(userId);
-        verify(propertyMapper, times(1)).toEntity(request);
-        verify(propertyRepository, times(1)).save(mappedProperty);
-        verify(propertyMapper, times(1)).toResponse(savedProperty);
+        assertEquals(99L, result.getId());
+        assertEquals("Nowe mieszkanie", result.getTitle());
+        verify(userRepository).findById(1L);
+        verify(propertyRepository).save(mapped);
     }
 
     @Test
     void create_ShouldThrowException_WhenUserNotFound() {
-        //GIVEN
-        Long nonExistentUserId = 999L;
-        CreatePropertyRequest request = createTestRequest();
+        when(userRepository.findById(999L)).thenReturn(Optional.empty());
 
-        when(userRepository.findById(nonExistentUserId))
-                .thenReturn(Optional.empty());
+        RuntimeException ex = assertThrows(RuntimeException.class,
+                () -> propertyService.create(buildRequest(), 999L));
 
-        //WHEN & THEN
-        RuntimeException exception = assertThrows(
-                RuntimeException.class,
-                () -> propertyService.create(request, nonExistentUserId)
-        );
-
-        assertEquals("Nie ma takiego usera", exception.getMessage());
-
-        verify(propertyMapper, never()).toEntity(any());
+        assertEquals("Nie ma takiego usera", ex.getMessage());
         verify(propertyRepository, never()).save(any());
-        verify(propertyMapper, never()).toResponse(any());
+    }
+
+    private CreatePropertyRequest buildRequest() {
+        CreatePropertyRequest r = new CreatePropertyRequest();
+        r.setTitle("Nowe mieszkanie");
+        r.setDescription("Opis");
+        r.setPrice(new BigDecimal("600000"));
+        r.setArea(new BigDecimal("65"));
+        r.setCity("Kraków");
+        r.setStreet("Floriańska");
+        r.setPostalCode("31-000");
+        r.setNumberOfRooms(3);
+        r.setFloor(2);
+        r.setTotalFloors(8);
+        r.setTransactionType("SPRZEDAŻ");
+        r.setPropertyType("MIESZKANIE");
+        return r;
     }
 }

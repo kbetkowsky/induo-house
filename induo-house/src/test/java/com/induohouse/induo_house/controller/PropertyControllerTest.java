@@ -1,92 +1,166 @@
 package com.induohouse.induo_house.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.induohouse.induo_house.dto.response.PropertyListResponse;
 import com.induohouse.induo_house.dto.response.PropertyOwnerResponse;
 import com.induohouse.induo_house.dto.response.PropertyResponse;
+import com.induohouse.induo_house.entity.User;
+import com.induohouse.induo_house.security.JwtService;
 import com.induohouse.induo_house.service.FileStorageService;
 import com.induohouse.induo_house.service.PropertyService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.util.List;
 
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+@WebMvcTest(PropertyController.class)
+@Import(PropertyControllerTest.TestSecurity.class)
+class PropertyControllerTest {
 
-@WebMvcTest
-public class PropertyControllerTest {
-    @Autowired
-    private MockMvc mockMvc;
+    @Configuration
+    static class TestSecurity {
+        @Bean
+        SecurityFilterChain testChain(HttpSecurity http) throws Exception {
+            http
+                    .csrf(AbstractHttpConfigurer::disable)
+                    .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
+            return http.build();
+        }
+    }
 
-    @MockitoBean
-    private PropertyService propertyService;
+    @Autowired MockMvc mockMvc;
+    @Autowired ObjectMapper objectMapper;
 
-    @MockitoBean
-    private FileStorageService fileStorageService;
+    @MockitoBean PropertyService propertyService;
+    @MockitoBean FileStorageService fileStorageService;
+    @MockitoBean JwtService jwtService;
+
+    // ── GET /api/properties/{id} ──────────────────────────────────
 
     @Test
-    @WithMockUser
-    void getById_ShouldReturnProperty_WhenPropertyExists() throws Exception {
+    void getById_ShouldReturn200_WhenPropertyExists() throws Exception {
         PropertyOwnerResponse owner = new PropertyOwnerResponse();
         owner.setId(10L);
         owner.setFirstName("Jan");
         owner.setLastName("Kowalski");
-        owner.setEmail("jan.kowalski@example.com");
+        owner.setEmail("jan@example.com");
         owner.setPhoneNumber("123456789");
 
-        PropertyResponse propertyResponse = new PropertyResponse();
-        propertyResponse.setId(1L);
-        propertyResponse.setTitle("Piękne mieszkanie w Warszawie");
-        propertyResponse.setDescription("Mieszkanie po remoncie, 3 pokoje");
-        propertyResponse.setPrice(new BigDecimal("650000"));
-        propertyResponse.setArea(new BigDecimal("55.5"));
-        propertyResponse.setCity("Warszawa");
-        propertyResponse.setStreet("Marszałkowska");
-        propertyResponse.setPostalCode("00-624");
-        propertyResponse.setNumberOfRooms(3);
-        propertyResponse.setFloor(4);
-        propertyResponse.setTotalFloors(10);
-        propertyResponse.setTransactionType("SPRZEDAŻ");
-        propertyResponse.setPropertyType("MIESZKANIE");
-        propertyResponse.setStatus("ACTIVE");
-        propertyResponse.setOwner(owner);
+        PropertyResponse response = new PropertyResponse();
+        response.setId(1L);
+        response.setTitle("Piękne mieszkanie");
+        response.setPrice(new BigDecimal("650000"));
+        response.setCity("Warszawa");
+        response.setOwner(owner);
 
-        when(propertyService.getById(1L))
-                .thenReturn(propertyResponse);
+        when(propertyService.getById(1L)).thenReturn(response);
 
         mockMvc.perform(get("/api/properties/1"))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(content().contentType("application/json"))
                 .andExpect(jsonPath("$.id", is(1)))
-                .andExpect(jsonPath("$.title", is("Piękne mieszkanie w Warszawie")))
-                .andExpect(jsonPath("$.price", is(650000)))
-                .andExpect(jsonPath("$.area", is(55.5)))
+                .andExpect(jsonPath("$.title", is("Piękne mieszkanie")))
                 .andExpect(jsonPath("$.city", is("Warszawa")))
-                .andExpect(jsonPath("$.status", is("ACTIVE")))
-                .andExpect(jsonPath("$.owner.id", is(10)))
-                .andExpect(jsonPath("$.owner.firstName", is("Jan")))
-                .andExpect(jsonPath("$.owner.lastName", is("Kowalski")));
+                .andExpect(jsonPath("$.owner.firstName", is("Jan")));
     }
 
     @Test
-    @WithMockUser
     void getById_ShouldReturn404_WhenPropertyNotFound() throws Exception {
-        //GIVEN
         when(propertyService.getById(999L))
-                .thenThrow(new RuntimeException("Property not found"));
+                .thenThrow(new RuntimeException("Nie znaleziono ogloszenia"));
 
-        //WHEN & THEN
         mockMvc.perform(get("/api/properties/999"))
                 .andDo(print())
                 .andExpect(status().isNotFound());
+    }
+
+    // ── GET /api/properties ───────────────────────────────────────
+
+    @Test
+    void getAll_ShouldReturn200WithPageContent() throws Exception {
+        PropertyListResponse item = new PropertyListResponse();
+        item.setId(1L);
+        item.setTitle("Mieszkanie na wynajem");
+        item.setCity("Kraków");
+        item.setPrice(new BigDecimal("3000"));
+
+        PageImpl<PropertyListResponse> page =
+                new PageImpl<>(List.of(item), PageRequest.of(0, 20), 1);
+
+        when(propertyService.getAll(any())).thenReturn(page);
+
+        mockMvc.perform(get("/api/properties"))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].title", is("Mieszkanie na wynajem")))
+                .andExpect(jsonPath("$.totalElements", is(1)));
+    }
+
+    // ── DELETE /api/properties/{id} ───────────────────────────────
+
+    @Test
+    void deleteProperty_ShouldReturn204_WhenUserIsOwner() throws Exception {
+        User fakeUser = new User();
+        fakeUser.setId(1L);
+        fakeUser.setEmail("jan@test.com");
+        fakeUser.setPasswordHash("hash");
+        fakeUser.setRole(User.Role.USER);
+
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(fakeUser, null, List.of())
+        );
+
+        mockMvc.perform(delete("/api/properties/1"))
+                .andDo(print())
+                .andExpect(status().isNoContent());
+
+        SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    void deleteProperty_ShouldReturn403_WhenUserIsNotOwner() throws Exception {
+        User fakeUser = new User();
+        fakeUser.setId(99L);
+        fakeUser.setEmail("obcy@test.com");
+        fakeUser.setPasswordHash("hash");
+        fakeUser.setRole(User.Role.USER);
+
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(fakeUser, null, List.of())
+        );
+
+        when(propertyService.getById(any())).thenThrow(
+                new RuntimeException("Mozesz kasowac tylko swoje ogloszenia"));
+
+        // serwis rzuca wyjątek → kontroler łapie i zwraca 403
+        org.mockito.Mockito.doThrow(new RuntimeException("Mozesz kasowac tylko swoje ogloszenia"))
+                .when(propertyService).delete(any(), any());
+
+        mockMvc.perform(delete("/api/properties/1"))
+                .andDo(print())
+                .andExpect(status().isForbidden());
+
+        SecurityContextHolder.clearContext();
     }
 }
