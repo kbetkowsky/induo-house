@@ -6,28 +6,29 @@ import com.induohouse.induo_house.dto.request.UpdatePropertyRequest;
 import com.induohouse.induo_house.dto.response.PropertyImageResponse;
 import com.induohouse.induo_house.dto.response.PropertyListResponse;
 import com.induohouse.induo_house.dto.response.PropertyResponse;
-import com.induohouse.induo_house.entity.Property;
 import com.induohouse.induo_house.entity.User;
 import com.induohouse.induo_house.service.FileStorageService;
 import com.induohouse.induo_house.service.PropertyService;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.core.Authentication;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.util.List;
-import java.util.Map;
 
+@Tag(name = "Properties", description = "Zarządzanie ogłoszeniami nieruchomości")
+@SecurityRequirement(name = "cookieAuth")
 @Slf4j
 @RestController
 @RequestMapping("/api/properties")
@@ -41,7 +42,8 @@ public class PropertyController {
         this.fileStorageService = fileStorageService;
     }
 
-    @GetMapping("/api/properties/search")
+    @Operation(summary = "Wyszukaj nieruchomości", description = "Filtruje po mieście i typie")
+    @GetMapping("/search")
     public ResponseEntity<Page<PropertyListResponse>> search(
             @RequestParam(required = false) String city,
             @RequestParam(required = false) String propertyType,
@@ -50,23 +52,17 @@ public class PropertyController {
         return ResponseEntity.ok(propertyService.search(city, propertyType, pageable));
     }
 
-    @GetMapping("{id}")
-    public ResponseEntity<PropertyResponse> getById(@PathVariable Long id) {
-        try {
-            PropertyResponse response = propertyService.getById(id);
-        return ResponseEntity.ok(response); }
-        catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
-    }
-
+    @Operation(summary = "Pobierz wszystkie nieruchomości", description = "Zwraca paginowaną listę nieruchomości")
     @GetMapping
     public ResponseEntity<PageResponse<PropertyListResponse>> getAll(Pageable pageable) {
         log.info("Get all properties - page: {}, size: {}", pageable.getPageNumber(), pageable.getPageSize());
-
         Page<PropertyListResponse> propertiesPage = propertyService.getAll(pageable);
-        PageResponse<PropertyListResponse> response = PageResponse.of(propertiesPage);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(PageResponse.of(propertiesPage));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<PropertyResponse> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(propertyService.getById(id));
     }
 
     @GetMapping("/city/{city}")
@@ -74,17 +70,7 @@ public class PropertyController {
             @PathVariable String city,
             Pageable pageable
     ) {
-        Page<PropertyListResponse> pageresponse = propertyService.getByCity(city, pageable);
-        return ResponseEntity.ok(pageresponse);
-    }
-
-    @GetMapping("/user/{userId}")
-    public ResponseEntity<Page<PropertyListResponse>> getPropertiesByUserId(
-            @PathVariable Long userId,
-            Pageable pageable
-    ) {
-        Page<PropertyListResponse> responses = propertyService.getByUserId(userId, pageable);
-        return ResponseEntity.ok(responses);
+        return ResponseEntity.ok(propertyService.getByCity(city, pageable));
     }
 
     @GetMapping("/type/{type}")
@@ -92,8 +78,15 @@ public class PropertyController {
             @PathVariable String type,
             Pageable pageable
     ) {
-        Page<PropertyListResponse> responses = propertyService.getByType(type, pageable);
-        return ResponseEntity.ok(responses);
+        return ResponseEntity.ok(propertyService.getByType(type, pageable));
+    }
+
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<Page<PropertyListResponse>> getByUserId(
+            @PathVariable Long userId,
+            Pageable pageable
+    ) {
+        return ResponseEntity.ok(propertyService.getByUserId(userId, pageable));
     }
 
     @GetMapping("/price-range")
@@ -102,9 +95,8 @@ public class PropertyController {
             @RequestParam BigDecimal maxPrice,
             @PageableDefault(size = 20, sort = "price", direction = Sort.Direction.ASC)
             Pageable pageable
-            ) {
-        Page<PropertyListResponse> responses = propertyService.getByPriceRange(minPrice, maxPrice, pageable);
-        return ResponseEntity.ok(responses);
+    ) {
+        return ResponseEntity.ok(propertyService.getByPriceRange(minPrice, maxPrice, pageable));
     }
 
     @GetMapping("/my")
@@ -112,12 +104,12 @@ public class PropertyController {
             Authentication authentication,
             Pageable pageable
     ) {
-        User currentUser = (User) authentication.getPrincipal();  // ← Cast
+        User currentUser = (User) authentication.getPrincipal();
         log.info("User {} fetching their properties", currentUser.getEmail());
-        Page<PropertyListResponse> response = propertyService.getByUserId(currentUser.getId(), pageable);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(propertyService.getByUserId(currentUser.getId(), pageable));
     }
 
+    @Operation(summary = "Utwórz nieruchomość")
     @PostMapping
     public ResponseEntity<PropertyResponse> createProperty(
             @Valid @RequestBody CreatePropertyRequest request,
@@ -136,25 +128,19 @@ public class PropertyController {
             Authentication authentication
     ) {
         User currentUser = (User) authentication.getPrincipal();
-        PropertyResponse response = propertyService.updatePatch(request, id, currentUser.getId());
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(propertyService.updatePatch(request, id, currentUser.getId()));
     }
 
+    @Operation(summary = "Usuń nieruchomość")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteProperty(
             @PathVariable Long id,
             Authentication authentication
     ) {
-        try {
-            User currentUser = (User) authentication.getPrincipal();
-            propertyService.delete(id, currentUser.getId());
-            return ResponseEntity.noContent().build();
-        } catch (RuntimeException e) {
-            log.error("Delete failed: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
+        User currentUser = (User) authentication.getPrincipal();
+        propertyService.delete(id, currentUser.getId());
+        return ResponseEntity.noContent().build();
     }
-
 
     @PostMapping("/{id}/images")
     public ResponseEntity<PropertyImageResponse> uploadImage(
@@ -178,9 +164,4 @@ public class PropertyController {
         propertyService.deleteImage(propertyId, imageId, currentUser.getId());
         return ResponseEntity.noContent().build();
     }
-
-
-
-
-
 }
