@@ -34,66 +34,17 @@ induo-house-frontend/    # Next.js frontend
 
 ## Architektura
 
-### Przepływ żądania (backend)
+Każde żądanie przechodzi przez następujące warstwy:
 
 ```
-HTTP Request
-     │
-     ▼
-┌─────────────────────────────────────────────────────┐
-│                   Spring Security                    │
-│         JWT Filter → Authentication/Authorization    │
-└─────────────────────────┬───────────────────────────┘
-                          │
-                          ▼
-              ┌───────────────────────┐
-              │      Controller       │  @RestController
-              │  (walidacja wejścia,  │  @Valid na DTO
-              │   mapowanie DTO)      │
-              └───────────┬───────────┘
-                          │
-                          ▼
-              ┌───────────────────────┐
-              │       Service         │  logika biznesowa,
-              │                       │  autoryzacja właściciela,
-              │                       │  obsługa wyjątków
-              └───────────┬───────────┘
-                          │
-                          ▼
-              ┌───────────────────────┐
-              │      Repository       │  Spring Data JPA
-              │                       │  + Specification API
-              │                       │  (filtrowanie, paginacja)
-              └───────────┬───────────┘
-                          │
-                          ▼
-              ┌───────────────────────┐
-              │      PostgreSQL        │  Flyway migracje
-              └───────────────────────┘
+Next.js -> Axios -> Spring Security (JWT) -> Controller -> Service -> Repository -> PostgreSQL
 ```
 
-### Przepływ żądania (full-stack)
-
-```
-Przeglądarka (Next.js)
-     │  Axios + React Query
-     ▼
-Spring Boot API (:8080)
-     │  JPA / Hibernate
-     ▼
-PostgreSQL
-```
-
-### Warstwy backendu
-
-| Warstwa | Odpowiedzialność |
-|---|---|
-| **Controller** | Przyjmuje HTTP, waliduje DTO (`@Valid`), zwraca ResponseEntity |
-| **Service** | Logika biznesowa, weryfikacja uprawnień, obsługa wyjątków |
-| **Repository** | Dostęp do bazy, zapytania przez Specification API |
-| **Mapper** | Konwersja Entity ↔ DTO (bez zależności między warstwami) |
-| **Security** | JWT filter, BCrypt, konfiguracja dostępu per endpoint |
-| **Exception** | `GlobalExceptionHandler` → spójne odpowiedzi błędów w formacie JSON |
+- **Controller** — przyjmuje HTTP, waliduje DTO, zwraca `ResponseEntity`
+- **Service** — logika biznesowa, sprawdzanie uprawnień właściciela ogłoszenia
+- **Repository** — dostęp do bazy przez Spring Data JPA + Specification API (filtrowanie, paginacja)
+- **Mapper** — konwersja Entity ↔ DTO, żadnych zależności między warstwami
+- **GlobalExceptionHandler** — centralny handler błędów, spójny format odpowiedzi JSON
 
 ## Pierwsze uruchomienie
 
