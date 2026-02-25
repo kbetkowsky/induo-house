@@ -32,20 +32,6 @@ induo-house/             # Spring Boot backend
 induo-house-frontend/    # Next.js frontend
 ```
 
-## Architektura
-
-Każde żądanie przechodzi przez następujące warstwy:
-
-```
-Next.js -> Axios -> Spring Security (JWT) -> Controller -> Service -> Repository -> PostgreSQL
-```
-
-- **Controller** — przyjmuje HTTP, waliduje DTO, zwraca `ResponseEntity`
-- **Service** — logika biznesowa, sprawdzanie uprawnień właściciela ogłoszenia
-- **Repository** — dostęp do bazy przez Spring Data JPA + Specification API (filtrowanie, paginacja)
-- **Mapper** — konwersja Entity ↔ DTO, żadnych zależności między warstwami
-- **GlobalExceptionHandler** — centralny handler błędów, spójny format odpowiedzi JSON
-
 ## Pierwsze uruchomienie
 
 **Wymagania:** Java 21+, Node.js 18+, Docker
