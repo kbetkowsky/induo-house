@@ -32,6 +32,69 @@ induo-house/             # Spring Boot backend
 induo-house-frontend/    # Next.js frontend
 ```
 
+## Architektura
+
+### Przepływ żądania (backend)
+
+```
+HTTP Request
+     │
+     ▼
+┌─────────────────────────────────────────────────────┐
+│                   Spring Security                    │
+│         JWT Filter → Authentication/Authorization    │
+└─────────────────────────┬───────────────────────────┘
+                          │
+                          ▼
+              ┌───────────────────────┐
+              │      Controller       │  @RestController
+              │  (walidacja wejścia,  │  @Valid na DTO
+              │   mapowanie DTO)      │
+              └───────────┬───────────┘
+                          │
+                          ▼
+              ┌───────────────────────┐
+              │       Service         │  logika biznesowa,
+              │                       │  autoryzacja właściciela,
+              │                       │  obsługa wyjątków
+              └───────────┬───────────┘
+                          │
+                          ▼
+              ┌───────────────────────┐
+              │      Repository       │  Spring Data JPA
+              │                       │  + Specification API
+              │                       │  (filtrowanie, paginacja)
+              └───────────┬───────────┘
+                          │
+                          ▼
+              ┌───────────────────────┐
+              │      PostgreSQL        │  Flyway migracje
+              └───────────────────────┘
+```
+
+### Przepływ żądania (full-stack)
+
+```
+Przeglądarka (Next.js)
+     │  Axios + React Query
+     ▼
+Spring Boot API (:8080)
+     │  JPA / Hibernate
+     ▼
+PostgreSQL
+```
+
+### Warstwy backendu
+
+| Warstwa | Odpowiedzialność |
+|---|---|
+| **Controller** | Przyjmuje HTTP, waliduje DTO (`@Valid`), zwraca ResponseEntity |
+| **Service** | Logika biznesowa, weryfikacja uprawnień, obsługa wyjątków |
+| **Repository** | Dostęp do bazy, zapytania przez Specification API |
+| **Mapper** | Konwersja Entity ↔ DTO (bez zależności między warstwami) |
+| **Security** | JWT filter, BCrypt, konfiguracja dostępu per endpoint |
+| **Exception** | `GlobalExceptionHandler` → spójne odpowiedzi błędów w formacie JSON |
+
 ## Pierwsze uruchomienie
 
 **Wymagania:** Java 21+, Node.js 18+, Docker
