@@ -1,19 +1,54 @@
+export interface PropertyImage {
+  id: number;
+  url: string;
+  isPrimary: boolean;
+  sortOrder: number;
+}
+
+export interface PropertyOwner {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber: string | null;
+}
+
 export interface Property {
   id: number;
   title: string;
   description: string;
   price: number;
-  location: string;
-  city: string;
-  propertyType: 'APARTMENT' | 'HOUSE' | 'LAND' | 'COMMERCIAL';
   area: number;
-  bedrooms: number;
-  bathrooms: number;
+  city: string;
+  street?: string;
+  postalCode?: string;
+  propertyType: string;
+  transactionType: string;
+  status: string;
+  numberOfRooms: number | null;
+  floor?: number | null;
+  totalFloors?: number | null;
   thumbnailUrl: string | null;
-  images?: string[];
+  images?: PropertyImage[];
   createdAt: string;
-  userId: number;
-  userEmail?: string;
+  owner: PropertyOwner;
+}
+
+// Alias dla list — ta sama struktura co Property ale bez images/owner
+export interface PropertyListResponse {
+  id: number;
+  title: string;
+  price: number;
+  area: number;
+  city: string;
+  numberOfRooms: number | null;
+  transactionType: string;
+  propertyType: string;
+  status: string;
+  thumbnailUrl: string | null;
+  ownerFirstName: string;
+  ownerLastName: string;
+  ownerPhoneNumber: string;
 }
 
 export interface User {
@@ -56,19 +91,4 @@ export interface PaginatedResponse<T> {
   totalPages: number;
   first: boolean;
   last: boolean;
-}
-
-export interface PropertyImage {
-  id: number;
-  url: string;
-  isPrimary: boolean;
-  sortOrder: number;
-}
-
-export interface PropertyOwner {
-  id: number;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phoneNumber: string | null;
 }

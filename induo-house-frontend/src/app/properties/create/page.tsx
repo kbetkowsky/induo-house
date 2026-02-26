@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { UploadCloud, X } from 'lucide-react';
@@ -30,10 +30,14 @@ export default function CreatePropertyPage() {
   const [primaryIndex, setPrimaryIndex] = useState<number>(0);
   const [previews, setPreviews] = useState<string[]>([]);
 
-  if (!user) {
-    router.push('/login');
-    return null;
-  }
+  // ← PRZENIESIONE z renderowania do useEffect
+  useEffect(() => {
+    if (user === null) {
+      router.push('/login');
+    }
+  }, [user, router]);
+
+  if (user === null) return null;
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -44,19 +48,15 @@ export default function CreatePropertyPage() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
-
     const newImages = [...images, ...files];
     setImages(newImages);
-
     const newPreviews = files.map(f => URL.createObjectURL(f));
     setPreviews(prev => [...prev, ...newPreviews]);
   };
 
   const removeImage = (index: number) => {
-    const newImages = images.filter((_, i) => i !== index);
-    const newPreviews = previews.filter((_, i) => i !== index);
-    setImages(newImages);
-    setPreviews(newPreviews);
+    setImages(images.filter((_, i) => i !== index));
+    setPreviews(previews.filter((_, i) => i !== index));
     if (primaryIndex === index) setPrimaryIndex(0);
     else if (primaryIndex > index) setPrimaryIndex(prev => prev - 1);
   };
@@ -91,36 +91,19 @@ export default function CreatePropertyPage() {
       const property = await response.json();
       const propertyId = property.id;
 
-      console.log('✅ Ogłoszenie utworzone, id:', propertyId);
-      console.log('📸 Liczba zdjęć do uploadu:', images.length);
-
       for (let i = 0; i < images.length; i++) {
-        console.log(`⬆️ Uploading zdjęcie ${i + 1}/${images.length}, isPrimary: ${i === primaryIndex}`);
-
         const formData = new FormData();
         formData.append('file', images[i]);
         formData.append('isPrimary', String(i === primaryIndex));
-
-        const imgResponse = await fetch(
-          `http://localhost:8080/api/properties/${propertyId}/images`,
-          {
-            method: 'POST',
-            credentials: 'include',
-            body: formData,
-          }
-        );
-
-        if (!imgResponse.ok) {
-          const errText = await imgResponse.text();
-          console.error(`❌ Błąd uploadu zdjęcia ${i + 1}:`, imgResponse.status, errText);
-        } else {
-          console.log(`✅ Zdjęcie ${i + 1} uploaded pomyślnie`);
-        }
+        await fetch(`http://localhost:8080/api/properties/${propertyId}/images`, {
+          method: 'POST',
+          credentials: 'include',
+          body: formData,
+        });
       }
 
       router.push(`/properties/${propertyId}`);
     } catch (err: any) {
-      console.error('❌ Błąd:', err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -138,23 +121,14 @@ export default function CreatePropertyPage() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-
         <div>
           <label className="block text-sm font-medium mb-1">Tytuł *</label>
-          <input
-            type="text" name="title" value={form.title}
-            onChange={handleChange} required
-            className="w-full border rounded-lg px-4 py-2"
-          />
+          <input type="text" name="title" value={form.title} onChange={handleChange} required className="w-full border rounded-lg px-4 py-2" />
         </div>
 
         <div>
           <label className="block text-sm font-medium mb-1">Opis *</label>
-          <textarea
-            name="description" value={form.description}
-            onChange={handleChange} required rows={5}
-            className="w-full border rounded-lg px-4 py-2"
-          />
+          <textarea name="description" value={form.description} onChange={handleChange} required rows={5} className="w-full border rounded-lg px-4 py-2" />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
@@ -213,55 +187,25 @@ export default function CreatePropertyPage() {
 
         <div>
           <label className="block text-sm font-medium mb-2">Zdjęcia</label>
-
           <label className="flex flex-col items-center justify-center w-full h-36 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:bg-gray-50 transition">
             <UploadCloud className="h-8 w-8 text-gray-400 mb-2" />
             <span className="text-sm text-gray-500">Kliknij aby dodać zdjęcia</span>
             <span className="text-xs text-gray-400 mt-1">JPG, PNG, WebP — max 10MB każde</span>
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={handleImageChange}
-              className="hidden"
-            />
+            <input type="file" accept="image/*" multiple onChange={handleImageChange} className="hidden" />
           </label>
 
           {previews.length > 0 && (
             <div className="mt-4">
-              <p className="text-xs text-gray-500 mb-2">
-                Kliknij gwiazdkę ⭐ aby ustawić zdjęcie główne
-              </p>
+              <p className="text-xs text-gray-500 mb-2">Kliknij gwiazdkę ⭐ aby ustawić zdjęcie główne</p>
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                 {previews.map((src, i) => (
-                  <div
-                    key={i}
-                    className={`relative rounded-lg overflow-hidden border-2 ${
-                      i === primaryIndex ? 'border-blue-500' : 'border-gray-200'
-                    }`}
-                  >
+                  <div key={i} className={`relative rounded-lg overflow-hidden border-2 ${i === primaryIndex ? 'border-blue-500' : 'border-gray-200'}`}>
                     <img src={src} alt="" className="w-full h-28 object-cover" />
-
                     {i === primaryIndex && (
-                      <div className="absolute top-1 left-1 bg-blue-500 text-white text-xs px-1.5 py-0.5 rounded-full">
-                        Główne
-                      </div>
+                      <div className="absolute top-1 left-1 bg-blue-500 text-white text-xs px-1.5 py-0.5 rounded-full">Główne</div>
                     )}
-
-                    <button
-                      type="button"
-                      onClick={() => setPrimaryIndex(i)}
-                      className="absolute top-1 right-7 text-yellow-400 hover:text-yellow-500 text-base leading-none"
-                      title="Ustaw jako główne"
-                    >
-                      ⭐
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => removeImage(i)}
-                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600"
-                    >
+                    <button type="button" onClick={() => setPrimaryIndex(i)} className="absolute top-1 right-7 text-yellow-400 hover:text-yellow-500 text-base leading-none" title="Ustaw jako główne">⭐</button>
+                    <button type="button" onClick={() => removeImage(i)} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600">
                       <X className="h-3 w-3" />
                     </button>
                   </div>
@@ -272,18 +216,11 @@ export default function CreatePropertyPage() {
         </div>
 
         <div className="flex gap-4 pt-2">
-          <button type="button" onClick={() => router.back()} className="flex-1 border py-3 rounded-xl hover:bg-gray-50">
-            Anuluj
-          </button>
-          <button
-            type="submit"
-            disabled={loading}
-            className="flex-1 bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 disabled:opacity-60"
-          >
+          <button type="button" onClick={() => router.back()} className="flex-1 border py-3 rounded-xl hover:bg-gray-50">Anuluj</button>
+          <button type="submit" disabled={loading} className="flex-1 bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 disabled:opacity-60">
             {loading ? 'Dodawanie...' : 'Dodaj ogłoszenie'}
           </button>
         </div>
-
       </form>
     </div>
   );

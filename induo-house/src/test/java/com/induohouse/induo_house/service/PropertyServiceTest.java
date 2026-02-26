@@ -7,7 +7,6 @@ import com.induohouse.induo_house.entity.User;
 import com.induohouse.induo_house.mapper.PropertyMapper;
 import com.induohouse.induo_house.repository.PropertyRepository;
 import com.induohouse.induo_house.repository.UserRepository;
-import com.induohouse.induo_house.service.PropertyService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

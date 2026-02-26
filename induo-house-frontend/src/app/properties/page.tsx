@@ -1,11 +1,10 @@
-// induo-house-frontend/src/app/properties/page.tsx
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import PropertyCard from '@/components/PropertyCard';
 import { getProperties, PropertyFilters } from '@/lib/properties';
-import { Property } from '@/types';
+import { PropertyListResponse } from '@/types/property';
 import {
   Search, SlidersHorizontal, ChevronLeft, ChevronRight,
   Building2, X
@@ -28,20 +27,20 @@ function useDebounce<T>(value: T, delay: number): T {
   return debounced;
 }
 
-export default function PropertiesPage() {
+function PropertiesPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [city, setCity]               = useState(searchParams.get('city') ?? '');
+  const [city, setCity]                 = useState(searchParams.get('city') ?? '');
   const [propertyType, setPropertyType] = useState(searchParams.get('propertyType') ?? '');
-  const [minPrice, setMinPrice]       = useState(searchParams.get('minPrice') ?? '');
-  const [maxPrice, setMaxPrice]       = useState(searchParams.get('maxPrice') ?? '');
-  const [minArea, setMinArea]         = useState(searchParams.get('minArea') ?? '');
-  const [maxArea, setMaxArea]         = useState(searchParams.get('maxArea') ?? '');
-  const [bedrooms, setBedrooms]       = useState(searchParams.get('bedrooms') ?? '');
-  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [minPrice, setMinPrice]         = useState(searchParams.get('minPrice') ?? '');
+  const [maxPrice, setMaxPrice]         = useState(searchParams.get('maxPrice') ?? '');
+  const [minArea, setMinArea]           = useState(searchParams.get('minArea') ?? '');
+  const [maxArea, setMaxArea]           = useState(searchParams.get('maxArea') ?? '');
+  const [bedrooms, setBedrooms]         = useState(searchParams.get('bedrooms') ?? '');
+  const [filtersOpen, setFiltersOpen]   = useState(false);
 
-  const [properties, setProperties]       = useState<Property[]>([]);
+  const [properties, setProperties]       = useState<PropertyListResponse[]>([]);
   const [isLoading, setIsLoading]         = useState(true);
   const [error, setError]                 = useState<string | null>(null);
   const [currentPage, setCurrentPage]     = useState(Number(searchParams.get('page') ?? 0));
@@ -129,10 +128,8 @@ export default function PropertiesPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-base)', color: 'var(--text-primary)' }}>
-
       <div style={{ maxWidth: 1280, margin: '0 auto', padding: '100px 24px 60px', boxSizing: 'border-box' }}>
 
-        {/* ── nagłówek ── */}
         <div style={{ marginBottom: 40 }}>
           <p style={{ color: 'var(--accent-bright)', fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>
             Wszystkie oferty
@@ -147,7 +144,6 @@ export default function PropertiesPage() {
           )}
         </div>
 
-        {/* ── pasek wyszukiwania ── */}
         <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: 220, position: 'relative' }}>
             <Search size={15} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
@@ -196,7 +192,6 @@ export default function PropertiesPage() {
           )}
         </div>
 
-        {/* ── panel filtrów ── */}
         {filtersOpen && (
           <div style={{
             display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
@@ -225,7 +220,6 @@ export default function PropertiesPage() {
           </div>
         )}
 
-        {/* ── wyniki ── */}
         <div ref={listRef}>
           {isLoading ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(250px,1fr))', gap: 20 }}>
@@ -262,7 +256,6 @@ export default function PropertiesPage() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(260px,1fr))', gap: 20 }}>
                 {properties.map(p => <PropertyCard key={p.id} property={p} />)}
               </div>
-
               {totalPages > 1 && (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 52 }}>
                   <button onClick={() => changePage(currentPage - 1)} disabled={currentPage === 0} style={pageBtn(currentPage === 0)}>
@@ -325,4 +318,12 @@ function pageBtn(disabled: boolean): React.CSSProperties {
     fontSize: 13, fontWeight: 500,
     cursor: disabled ? 'default' : 'pointer',
   };
+}
+
+export default function PropertiesPage() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: '100vh', background: 'var(--bg-base)' }} />}>
+      <PropertiesPageInner />
+    </Suspense>
+  );
 }

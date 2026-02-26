@@ -1,6 +1,7 @@
 import { apiClient } from './api';
 import { API_ENDPOINTS } from '@/constants';
 import { Property, PaginatedResponse } from '@/types';
+import { PropertyListResponse } from '@/types/property';
 
 export interface PropertyFilters {
   city?: string;
@@ -16,7 +17,7 @@ export interface PropertyFilters {
 
 export async function getProperties(
   filters: PropertyFilters = {}
-): Promise<PaginatedResponse<Property>> {
+): Promise<PaginatedResponse<PropertyListResponse>> {
   const params = new URLSearchParams();
 
   if (filters.city) params.append('city', filters.city);
@@ -30,7 +31,7 @@ export async function getProperties(
   params.append('page', (filters.page || 0).toString());
   params.append('size', (filters.size || 12).toString());
 
-  const response = await apiClient.get<PaginatedResponse<Property>>(
+  const response = await apiClient.get<PaginatedResponse<PropertyListResponse>>(
     `${API_ENDPOINTS.PROPERTIES}?${params.toString()}`
   );
 

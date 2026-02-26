@@ -2,12 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { getPropertyById } from '@/lib/properties';
-import { Property } from '@/types';
+import { PropertyListResponse } from '@/types/property';
 import PropertyCard from '@/components/PropertyCard';
 import Link from 'next/link';
 import { Heart, Building2, ArrowLeft, Trash2 } from 'lucide-react';
-
-const SKELETON_COUNT = 6;
 
 function SkeletonCard() {
   return (
@@ -24,15 +22,15 @@ function SkeletonCard() {
 
 export default function FavoritesPage() {
   const [ids, setIds]               = useState<number[]>([]);
-  const [properties, setProperties] = useState<Property[]>([]);
+  const [properties, setProperties] = useState<PropertyListResponse[]>([]);
   const [loading, setLoading]       = useState(true);
 
   const loadFavorites = async (favIds: number[]) => {
     if (favIds.length === 0) { setProperties([]); setLoading(false); return; }
     try {
       const results = await Promise.allSettled(favIds.map(id => getPropertyById(id)));
-      const ok = results
-        .filter((r): r is PromiseFulfilledResult<Property> => r.status === 'fulfilled')
+      const ok = (results as PromiseSettledResult<PropertyListResponse>[])
+        .filter((r): r is PromiseFulfilledResult<PropertyListResponse> => r.status === 'fulfilled')
         .map(r => r.value);
       setProperties(ok);
     } catch {}
@@ -95,7 +93,6 @@ export default function FavoritesPage() {
 
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 20px' }}>
 
-        {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32, flexWrap: 'wrap', gap: 16 }}>
           <div>
             <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--text-muted)', fontSize: 13, textDecoration: 'none', fontWeight: 500, marginBottom: 12 }}
@@ -121,14 +118,12 @@ export default function FavoritesPage() {
           )}
         </div>
 
-        {/* Loading */}
         {loading && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(300px,1fr))', gap: 20 }}>
             {Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} />)}
           </div>
         )}
 
-        {/* Empty state */}
         {!loading && properties.length === 0 && (
           <div style={{ textAlign: 'center', padding: '80px 20px' }}>
             <div style={{ width: 80, height: 80, borderRadius: 24, background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
@@ -142,7 +137,6 @@ export default function FavoritesPage() {
           </div>
         )}
 
-        {/* Grid */}
         {!loading && properties.length > 0 && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(300px,1fr))', gap: 20 }}>
             {properties.map((property, idx) => (

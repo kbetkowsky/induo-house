@@ -60,7 +60,8 @@ export default function PropertyDetailPage() {
       try {
         const data = await getPropertyById(id);
         setProperty(data);
-        setActiveImage(data.images?.find((img: PropertyImage) => img.isPrimary) ?? data.images?.[0] ?? null);
+        const primary = data.images?.find(img => img.isPrimary) ?? data.images?.[0] ?? null;
+        setActiveImage(primary);
       } catch {
         setError('Nie udało się załadować ogłoszenia.');
       } finally {
@@ -85,7 +86,7 @@ export default function PropertyDetailPage() {
     if (!property || !confirm('Usunąć to zdjęcie?')) return;
     try {
       await apiClient.delete(`/properties/${property.id}/images/${imageId}`);
-      const updated = property.images?.filter(i => i.id !== imageId) ?? [];
+      const updated = property.images?.filter(img => img.id !== imageId) ?? [];
       setProperty({ ...property, images: updated });
       if (activeImage?.id === imageId) setActiveImage(updated[0] ?? null);
       toast.success('Zdjęcie usunięte');
@@ -439,7 +440,6 @@ export default function PropertyDetailPage() {
                 </div>
               </div>
 
-              {/* ✅ MAPA - osobna sekcja, poza .map() */}
               <div className="section-card" style={{ padding: 20 }}>
                 <p className="section-title" style={{ marginBottom: 16 }}>Lokalizacja</p>
                 <div style={{ marginTop: 16 }}>
@@ -483,9 +483,9 @@ export default function PropertyDetailPage() {
                 </div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 20 }}>
                   {[
-                    property.area          && { icon: <Square size={13} />,   label: `${property.area} m²` },
+                    property.area          && { icon: <Square size={13} />,    label: `${property.area} m²` },
                     property.numberOfRooms && { icon: <BedDouble size={13} />, label: `${property.numberOfRooms} pok.` },
-                    property.floor != null && { icon: <Layers size={13} />,   label: `Piętro ${property.floor}${property.totalFloors ? `/${property.totalFloors}` : ''}` },
+                    property.floor != null && { icon: <Layers size={13} />,    label: `Piętro ${property.floor}${property.totalFloors ? `/${property.totalFloors}` : ''}` },
                   ].filter(Boolean).map((item: any, i) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--text-secondary)', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 10px' }}>
                       {item.icon} {item.label}

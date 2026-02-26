@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { getProperties } from '@/lib/properties';
-import { Property } from '@/types';
+import { PropertyListResponse } from '@/types/property';
 import PropertyCard from '@/components/PropertyCard';
 import { Building2 } from 'lucide-react';
 
@@ -25,15 +25,15 @@ function SkeletonCard() {
 }
 
 export default function SimilarListings({ currentId, city, propertyType }: Props) {
-  const [items, setItems]     = useState<Property[]>([]);
+  const [items, setItems]     = useState<PropertyListResponse[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const run = async () => {
       try {
         const data = await getProperties({ city, propertyType, page: 0, size: 7 });
-        const filtered = (data.content ?? data)
-          .filter((p: Property) => p.id !== currentId)
+        const filtered = data.content
+          .filter(p => p.id !== currentId)
           .slice(0, 3);
         setItems(filtered);
       } catch {}
@@ -58,7 +58,6 @@ export default function SimilarListings({ currentId, city, propertyType }: Props
         .sl-card { animation: sl-fadeUp 0.4s ease both; }
       `}</style>
 
-      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
         <div style={{ width: 3, height: 22, borderRadius: 99, background: 'var(--accent)' }} />
         <h2 style={{ fontSize: 17, fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>

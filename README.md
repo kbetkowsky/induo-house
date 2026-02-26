@@ -1,4 +1,4 @@
-# Induo House 🏠
+# Induo House
 
 Full-stack aplikacja do zarządzania ogłoszeniami nieruchomości — sprzedaż i wynajem.
 Użytkownicy mogą zakładać konta, publikować ogłoszenia ze zdjęciami oraz przeglądać

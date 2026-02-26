@@ -180,10 +180,10 @@ export default function LoginPage() {
                     autoComplete="new-email"
                     style={inputStyle('email', !!errors.email)}
                     onFocus={() => setFocusedField('email')}
-                    onBlur={() => setFocusedField(null)}
                     {...register('email', {
                       required: 'Email jest wymagany',
                       pattern: { value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i, message: 'Nieprawidłowy adres email' },
+                      onBlur: () => setFocusedField(null),
                     })}
                   />
                 </div>
@@ -204,11 +204,12 @@ export default function LoginPage() {
                     autoComplete="new-password"
                     style={{ ...inputStyle('password', !!errors.password), paddingRight:50 }}
                     onFocus={() => setFocusedField('password')}
-                    onBlur={() => setFocusedField(null)}
                     {...register('password', {
                       required: 'Hasło jest wymagane',
                       minLength: { value: 6, message: 'Min. 6 znaków' },
+                      onBlur: () => setFocusedField(null),
                     })}
+
                   />
                   <button
                     type="button"

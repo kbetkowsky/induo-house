@@ -66,6 +66,14 @@ export default function RegisterPage() {
     letterSpacing: '0.07em',
   };
 
+  // Helper: łączy onBlur z register żeby nie było duplikatu
+  function mergeBlur(fieldName: string, rhfOnBlur: React.FocusEventHandler<HTMLInputElement>) {
+    return (e: React.FocusEvent<HTMLInputElement>) => {
+      setFocusedField(null);
+      rhfOnBlur(e);
+    };
+  }
+
   return (
     <div style={{ minHeight: '100vh', display: 'grid', gridTemplateColumns: '1fr 1fr' }} className="auth-grid">
       <style>{`
@@ -208,26 +216,36 @@ export default function RegisterPage() {
                   <label style={labelStyle}>Imię</label>
                   <div style={{ position:'relative' }}>
                     <User size={15} style={{ position:'absolute', left:14, top:'50%', transform:'translateY(-50%)', color:iconColor('firstName'), transition:'color 0.2s', pointerEvents:'none' }} />
-                    <input
-                      autoComplete="new-given-name"
-                      style={inputStyle('firstName', !!errors.firstName)}
-                      onFocus={() => setFocusedField('firstName')}
-                      onBlur={() => setFocusedField(null)}
-                      {...register('firstName', { required: 'Imię jest wymagane' })}
-                    />
+                    {(() => {
+                      const { onBlur, ...rest } = register('firstName', { required: 'Imię jest wymagane' });
+                      return (
+                        <input
+                          autoComplete="new-given-name"
+                          style={inputStyle('firstName', !!errors.firstName)}
+                          onFocus={() => setFocusedField('firstName')}
+                          onBlur={mergeBlur('firstName', onBlur)}
+                          {...rest}
+                        />
+                      );
+                    })()}
                   </div>
                   {errors.firstName && <p style={{ margin:'6px 0 0', fontSize:12, color:'#f87171' }}>{errors.firstName.message}</p>}
                 </div>
                 <div>
                   <label style={labelStyle}>Nazwisko</label>
                   <div style={{ position:'relative' }}>
-                    <input
-                      autoComplete="new-family-name"
-                      style={inputStyleNoIcon('lastName', !!errors.lastName)}
-                      onFocus={() => setFocusedField('lastName')}
-                      onBlur={() => setFocusedField(null)}
-                      {...register('lastName', { required: 'Nazwisko jest wymagane' })}
-                    />
+                    {(() => {
+                      const { onBlur, ...rest } = register('lastName', { required: 'Nazwisko jest wymagane' });
+                      return (
+                        <input
+                          autoComplete="new-family-name"
+                          style={inputStyleNoIcon('lastName', !!errors.lastName)}
+                          onFocus={() => setFocusedField('lastName')}
+                          onBlur={mergeBlur('lastName', onBlur)}
+                          {...rest}
+                        />
+                      );
+                    })()}
                   </div>
                   {errors.lastName && <p style={{ margin:'6px 0 0', fontSize:12, color:'#f87171' }}>{errors.lastName.message}</p>}
                 </div>
@@ -238,17 +256,22 @@ export default function RegisterPage() {
                 <label style={labelStyle}>Adres email</label>
                 <div style={{ position:'relative' }}>
                   <Mail size={15} style={{ position:'absolute', left:14, top:'50%', transform:'translateY(-50%)', color:iconColor('email'), transition:'color 0.2s', pointerEvents:'none' }} />
-                  <input
-                    type="email"
-                    autoComplete="new-email"
-                    style={inputStyle('email', !!errors.email)}
-                    onFocus={() => setFocusedField('email')}
-                    onBlur={() => setFocusedField(null)}
-                    {...register('email', {
+                  {(() => {
+                    const { onBlur, ...rest } = register('email', {
                       required: 'Email jest wymagany',
                       pattern: { value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i, message: 'Nieprawidłowy email' },
-                    })}
-                  />
+                    });
+                    return (
+                      <input
+                        type="email"
+                        autoComplete="new-email"
+                        style={inputStyle('email', !!errors.email)}
+                        onFocus={() => setFocusedField('email')}
+                        onBlur={mergeBlur('email', onBlur)}
+                        {...rest}
+                      />
+                    );
+                  })()}
                 </div>
                 {errors.email && <p style={{ margin:'6px 0 0', fontSize:12, color:'#f87171' }}>{errors.email.message}</p>}
               </div>
@@ -261,14 +284,19 @@ export default function RegisterPage() {
                 </label>
                 <div style={{ position:'relative' }}>
                   <Phone size={15} style={{ position:'absolute', left:14, top:'50%', transform:'translateY(-50%)', color:iconColor('phoneNumber'), transition:'color 0.2s', pointerEvents:'none' }} />
-                  <input
-                    type="tel"
-                    autoComplete="new-tel"
-                    style={inputStyle('phoneNumber', !!errors.phoneNumber)}
-                    onFocus={() => setFocusedField('phoneNumber')}
-                    onBlur={() => setFocusedField(null)}
-                    {...register('phoneNumber')}
-                  />
+                  {(() => {
+                    const { onBlur, ...rest } = register('phoneNumber');
+                    return (
+                      <input
+                        type="tel"
+                        autoComplete="new-tel"
+                        style={inputStyle('phoneNumber', !!errors.phoneNumber)}
+                        onFocus={() => setFocusedField('phoneNumber')}
+                        onBlur={mergeBlur('phoneNumber', onBlur)}
+                        {...rest}
+                      />
+                    );
+                  })()}
                 </div>
               </div>
 
@@ -277,17 +305,22 @@ export default function RegisterPage() {
                 <label style={labelStyle}>Hasło</label>
                 <div style={{ position:'relative' }}>
                   <Lock size={15} style={{ position:'absolute', left:14, top:'50%', transform:'translateY(-50%)', color:iconColor('password'), transition:'color 0.2s', pointerEvents:'none' }} />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    autoComplete="new-password"
-                    style={{ ...inputStyle('password', !!errors.password), paddingRight:50 }}
-                    onFocus={() => setFocusedField('password')}
-                    onBlur={() => setFocusedField(null)}
-                    {...register('password', {
+                  {(() => {
+                    const { onBlur, ...rest } = register('password', {
                       required: 'Hasło jest wymagane',
                       minLength: { value: 6, message: 'Min. 6 znaków' },
-                    })}
-                  />
+                    });
+                    return (
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        autoComplete="new-password"
+                        style={{ ...inputStyle('password', !!errors.password), paddingRight:50 }}
+                        onFocus={() => setFocusedField('password')}
+                        onBlur={mergeBlur('password', onBlur)}
+                        {...rest}
+                      />
+                    );
+                  })()}
                   <button
                     type="button"
                     onClick={() => setShowPassword(v => !v)}

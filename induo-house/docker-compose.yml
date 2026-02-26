@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:18
+    image: postgres:16
     container_name: induo-postgres
     environment:
       POSTGRES_DB: property_db
@@ -15,6 +15,30 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  backend:
+    build: ./induo-house
+    container_name: induo-backend
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/property_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build: ./induo-house-frontend
+    container_name: induo-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://backend:8080
+    depends_on:
+      - backend
 
 volumes:
   postgres_data:
