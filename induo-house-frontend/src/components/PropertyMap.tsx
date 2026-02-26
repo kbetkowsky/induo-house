@@ -50,13 +50,19 @@ export default function PropertyMap({ city, street, postalCode }: Props) {
     const address = [street, city, postalCode].filter(Boolean).join(', ');
     const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`;
 
-    fetch(url, { headers: { 'Accept-Language': 'pl' } })
+    fetch(url, { headers: { 'Accept-Language': 'pl', 'User-Agent': 'induo-house/1.0' } })
       .then(r => r.json())
       .then(data => {
         if (data[0]) {
           setCoords([parseFloat(data[0].lat), parseFloat(data[0].lon)]);
         } else {
-          setError(true);
+          const fallbackUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city)}&format=json&limit=1`;
+          return fetch(fallbackUrl, { headers: { 'Accept-Language': 'pl', 'User-Agent': 'induo-house/1.0' } })
+            .then(r => r.json())
+            .then(d => {
+              if (d[0]) setCoords([parseFloat(d[0].lat), parseFloat(d[0].lon)]);
+              else setError(true);
+            });
         }
       })
       .catch(() => setError(true))

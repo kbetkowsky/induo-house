@@ -175,14 +175,22 @@ export default function PropertyDetailPage() {
           gap: 4px;
           border-radius: 18px;
           overflow: hidden;
+          max-height: 444px;
         }
         .airbnb-gallery .main-cell { grid-row: 1 / 3; }
         .airbnb-cell {
-          position: relative; overflow: hidden;
-          background: var(--bg-card); cursor: pointer;
+          position: relative;
+          overflow: hidden;
+          background: var(--bg-card);
+          cursor: pointer;
+          min-height: 0;
         }
         .airbnb-cell img {
-          width: 100%; height: 100%; object-fit: cover;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          object-position: center;
+          display: block;
           transition: transform 0.4s ease;
         }
         .airbnb-cell:hover img { transform: scale(1.04); }
