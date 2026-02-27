@@ -43,9 +43,8 @@ induo-house-frontend/    # Next.js frontend
 cd induo-house
 docker-compose up -d
 
-# 2. Ustaw zmienne środowiskowe
-export DB_PASSWORD=twoje_haslo
-export JWT_SECRET=twoj_secret
+# 2. Skopiuj plik ze zmiennymi środowiskowymi i uzupełnij wartości
+cp .env.example .env
 
 # 3. Uruchom aplikację
 ./mvnw spring-boot:run
@@ -62,6 +61,17 @@ npm run dev
 ```
 
 App: `http://localhost:3000`
+
+## Zmienne środowiskowe
+
+Skopiuj `.env.example` do `.env` i uzupełnij wartości:
+
+```env
+DB_PASSWORD=twoje_haslo_do_bazy
+JWT_SECRET=twoj_losowy_sekret_min_32_znaki
+```
+
+> ⚠️ Nigdy nie commituj pliku `.env` — jest dodany do `.gitignore`
 
 ## API
 
@@ -126,7 +136,7 @@ Content-Type: application/json
 }
 ```
 
-> `propertyType`: `APARTMENT` | `HOUSE` | `LAND`
+> `propertyType`: `APARTMENT` | `HOUSE` | `LAND`  
 > `transactionType`: `SALE` | `RENT`
 
 ## Testy
@@ -136,11 +146,24 @@ cd induo-house
 ./mvnw test
 ```
 
-Testy integracyjne używają `@SpringBootTest` + **Testcontainers** — PostgreSQL
-odpala się automatycznie w Dockerze, zero ręcznej konfiguracji.
+**49 testów** — unit testy (Mockito) + testy integracyjne (`@SpringBootTest`).
+
+Testy integracyjne używają **Testcontainers** — PostgreSQL odpala się automatycznie
+w Dockerze, zero ręcznej konfiguracji.
+
+| Klasa | Typ | Testy |
+|---|---|---|
+| `AuthControllerTest` | Integracyjny | 7 |
+| `PropertyControllerTest` | Integracyjny | 6 |
+| `PropertyIntegrationTest` | Integracyjny (baza) | 7 |
+| `PropertyServiceTest` | Unit | 9 |
+| `AuthServiceTest` | Unit | 8 |
+| `PropertyMapperTest` | Unit | 11 |
+| `InduoHouseApplicationTests` | Smoke test | 1 |
 
 ## Bezpieczeństwo
 
-- JWT authentication
+- JWT authentication (httpOnly cookie)
 - Hasła hashowane **BCryptem**
 - Zmienne środowiskowe dla sekretów (`DB_PASSWORD`, `JWT_SECRET`)
+- Autoryzacja na poziomie zasobu — tylko właściciel może edytować/usuwać swoje ogłoszenie
