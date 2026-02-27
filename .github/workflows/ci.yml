@@ -1,5 +1,9 @@
 name: CI — Backend Tests
 
+permissions:
+  contents: read
+  checks: write
+
 on:
   push:
     branches: [ main ]
@@ -26,4 +30,4 @@ jobs:
         run: cd induo-house && ./mvnw test
         env:
           DB_PASSWORD: test_password
-          JWT_SECRET: test_secret
+          JWT_SECRET: test_secret_minimum_32_characters_long
