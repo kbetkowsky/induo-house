@@ -1,9 +1,5 @@
 name: CI — Backend Tests
 
-permissions:
-  contents: read
-  checks: write
-
 on:
   push:
     branches: [ main ]
@@ -26,9 +22,11 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
+      - name: Make mvnw executable
+        run: chmod +x induo-house/mvnw
+
       - name: Run tests
-        working-directory: ./induo-house
-        run: ./mvnw clean test
+        run: cd induo-house && ./mvnw clean test
         env:
           DB_PASSWORD: test_password
           JWT_SECRET: test_secret_minimum_32_characters_long
