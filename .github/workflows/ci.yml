@@ -27,7 +27,8 @@ jobs:
           cache: 'maven'
 
       - name: Run tests
-        run: cd induo-house && ./mvnw test
+        working-directory: ./induo-house
+        run: ./mvnw clean test
         env:
           DB_PASSWORD: test_password
           JWT_SECRET: test_secret_minimum_32_characters_long
