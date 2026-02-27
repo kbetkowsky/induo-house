@@ -8,6 +8,9 @@ import com.induohouse.induo_house.dto.response.PropertyResponse;
 import com.induohouse.induo_house.entity.Property;
 import com.induohouse.induo_house.entity.PropertyImage;
 import com.induohouse.induo_house.entity.User;
+import com.induohouse.induo_house.exception.PropertyAccessDeniedException;
+import com.induohouse.induo_house.exception.PropertyNotFoundException;
+import com.induohouse.induo_house.exception.UserNotFoundException;
 import com.induohouse.induo_house.mapper.PropertyMapper;
 import com.induohouse.induo_house.repository.PropertyImageRepository;
 import com.induohouse.induo_house.repository.PropertyRepository;
@@ -24,10 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/*
-    TRZEBA BEDZIE ZMIENIC UPDATE Z RECZNEGO PATCH KAZDEJ !NULL NA MAPSTRUCT
-    DOPRACOWAC WALIDACJE SORTOWANIA
- */
 @Service
 @Slf4j
 public class PropertyService {
@@ -66,10 +65,9 @@ public class PropertyService {
 
     public PropertyResponse getById(Long id) {
         Property property = propertyRepository.findByIdWithImages(id)
-                .orElseThrow(() -> new RuntimeException("Nie znaleziono ogloszenia"));
+                .orElseThrow(() -> new PropertyNotFoundException(id));
         return propertyMapper.toResponse(property);
     }
-
 
     public Page<PropertyListResponse> getByCity(String city, Pageable pageable) {
         return propertyRepository.findByCity(city, pageable)
@@ -86,13 +84,12 @@ public class PropertyService {
                 .map(propertyMapper::toListResponse);
     }
 
-
     public void delete(Long userId, Long propertyId) {
         Property property = propertyRepository.findById(propertyId)
-                .orElseThrow(() -> new RuntimeException("Nie ma takiego ogloszenia"));
+                .orElseThrow(() -> new PropertyNotFoundException(propertyId));
 
         if (!property.getUser().getId().equals(userId)) {
-            throw new RuntimeException("Mozesz kasowac tylko swoje ogloszenia");
+            throw new PropertyAccessDeniedException();
         }
 
         propertyRepository.delete(property);
@@ -101,7 +98,7 @@ public class PropertyService {
 
     public PropertyResponse create(CreatePropertyRequest request, Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Nie ma takiego usera"));
+                .orElseThrow(() -> new UserNotFoundException(userId));
 
         Property property = propertyMapper.toEntity(request);
         property.setUser(user);
@@ -110,13 +107,13 @@ public class PropertyService {
     }
 
     public PropertyResponse updatePatch(UpdatePropertyRequest request, Long userId, Long propertyId) {
-
         Property property = propertyRepository.findById(propertyId)
-                .orElseThrow(() -> new RuntimeException("Nie ma takiego ogloszenia"));
+                .orElseThrow(() -> new PropertyNotFoundException(propertyId));
 
         if (!property.getUser().getId().equals(userId)) {
-            throw new RuntimeException("Mozesz edytowac tylko wlasne ogloszenia");
+            throw new PropertyAccessDeniedException();
         }
+
         if (request.getTitle() != null) property.setTitle(request.getTitle());
         if (request.getDescription() != null) property.setDescription(request.getDescription());
         if (request.getPrice() != null) property.setPrice(request.getPrice());
@@ -136,10 +133,10 @@ public class PropertyService {
 
     public PropertyResponse update(UpdatePropertyRequest request, Long userId, Long propertyId) {
         Property property = propertyRepository.findById(propertyId)
-                .orElseThrow(() -> new RuntimeException("Nie ma takiego ogloszenia"));
+                .orElseThrow(() -> new PropertyNotFoundException(propertyId));
 
         if (!property.getUser().getId().equals(userId)) {
-            throw new RuntimeException("Mozesz edytowac tylko swoje ogloszenie");
+            throw new PropertyAccessDeniedException();
         }
 
         property.setTitle(request.getTitle());
@@ -148,7 +145,6 @@ public class PropertyService {
         property.setCity(request.getCity());
         property.setArea(request.getArea());
         property.setPropertyType(request.getPropertyType());
-        property.setArea(request.getArea());
         property.setNumberOfRooms(request.getNumberOfRooms());
         property.setFloor(request.getFloor());
 
@@ -156,18 +152,19 @@ public class PropertyService {
         return propertyMapper.toResponse(saved);
     }
 
-    public Page<PropertyListResponse> getByPriceRange(BigDecimal minPrice, BigDecimal maxPrice,
-                                                      Pageable pageable) {
+    public Page<PropertyListResponse> getByPriceRange(BigDecimal minPrice, BigDecimal maxPrice, Pageable pageable) {
         return propertyRepository.findByPriceBetween(minPrice, maxPrice, pageable)
                 .map(propertyMapper::toListResponse);
     }
 
     public PropertyImageResponse addImage(Long propertyId, MultipartFile file, boolean isPrimary, Long userId) throws IOException {
         Property property = propertyRepository.findById(propertyId)
-                .orElseThrow(() -> new RuntimeException("Nie ma takiego ogloszenia"));
+                .orElseThrow(() -> new PropertyNotFoundException(propertyId));
+
         if (!property.getUser().getId().equals(userId)) {
-            throw new RuntimeException("Mozesz dodawac zdjecia tylko do swoich ogloszen");
+            throw new PropertyAccessDeniedException();
         }
+
         String contentType = file.getContentType();
         if (contentType == null || !contentType.startsWith("image/")) {
             throw new IllegalArgumentException("Dozwolone sa tylko pliki graficzne (jpg, png, webp)");
@@ -178,15 +175,19 @@ public class PropertyService {
         if (isPrimary || property.getImages().isEmpty()) {
             propertyImageRepository.clearPrimaryForProperty(propertyId);
         }
+
         String url = fileStorageService.uploadFile(file);
         int sortOrder = property.getImages().size();
+
         PropertyImage image = new PropertyImage();
         image.setProperty(property);
         image.setUrl(url);
         image.setPrimary(isPrimary || sortOrder == 0);
         image.setSortOrder(sortOrder);
+
         PropertyImage saved = propertyImageRepository.save(image);
         log.info("Image added to property {} by user {}, isPrimary={}", propertyId, userId, image.isPrimary());
+
         PropertyImageResponse response = new PropertyImageResponse();
         response.setId(saved.getId());
         response.setUrl(saved.getUrl());
@@ -227,21 +228,25 @@ public class PropertyService {
         return new PageImpl<>(responses, pageable, page.getTotalElements());
     }
 
-
     public void deleteImage(Long propertyId, Long imageId, Long userId) throws IOException {
         Property property = propertyRepository.findById(propertyId)
-                .orElseThrow(() -> new RuntimeException("Nie ma takiego ogloszenia"));
+                .orElseThrow(() -> new PropertyNotFoundException(propertyId));
+
         if (!property.getUser().getId().equals(userId)) {
-            throw new RuntimeException("Mozesz usuwac zdjecia tylko ze swoich ogloszen");
+            throw new PropertyAccessDeniedException();
         }
+
         PropertyImage image = propertyImageRepository.findById(imageId)
-                .orElseThrow(() -> new RuntimeException("Nie znaleziono zdjecia"));
+                .orElseThrow(() -> new PropertyNotFoundException(imageId));
+
         if (!image.getProperty().getId().equals(propertyId)) {
-            throw new RuntimeException("To zdjecie nie nalezy do tego ogloszenia");
+            throw new PropertyAccessDeniedException();
         }
+
         fileStorageService.deleteFile(image.getUrl());
         propertyImageRepository.delete(image);
         log.info("Image {} deleted from property {} by user {}", imageId, propertyId, userId);
+
         if (image.isPrimary()) {
             propertyImageRepository.findByPropertyIdOrderBySortOrderAsc(propertyId)
                     .stream()
@@ -253,8 +258,3 @@ public class PropertyService {
         }
     }
 }
-
-
-
-
-

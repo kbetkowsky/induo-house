@@ -6,7 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 
-//DO USUNIECIA KLASA TYLKO DO TESTOW
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -14,6 +14,7 @@ import lombok.NoArgsConstructor;
 public class AuthResponse {
     private String token;
     private String refreshToken;
+    @Builder.Default
     private String type = "Bearer";
     private String email;
 }

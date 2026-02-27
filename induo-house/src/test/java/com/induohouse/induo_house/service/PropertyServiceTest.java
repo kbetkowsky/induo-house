@@ -1,10 +1,13 @@
 package com.induohouse.induo_house.service;
 
 import com.induohouse.induo_house.dto.request.CreatePropertyRequest;
+import com.induohouse.induo_house.dto.request.UpdatePropertyRequest;
+import com.induohouse.induo_house.dto.response.PropertyListResponse;
 import com.induohouse.induo_house.dto.response.PropertyResponse;
 import com.induohouse.induo_house.entity.Property;
 import com.induohouse.induo_house.entity.User;
 import com.induohouse.induo_house.mapper.PropertyMapper;
+import com.induohouse.induo_house.repository.PropertyImageRepository;
 import com.induohouse.induo_house.repository.PropertyRepository;
 import com.induohouse.induo_house.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,8 +16,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -27,6 +35,8 @@ class PropertyServiceTest {
     @Mock private PropertyRepository propertyRepository;
     @Mock private UserRepository userRepository;
     @Mock private PropertyMapper propertyMapper;
+    @Mock private PropertyImageRepository propertyImageRepository;
+    @Mock private FileStorageService fileStorageService;
 
     @InjectMocks
     private PropertyService propertyService;
@@ -34,6 +44,7 @@ class PropertyServiceTest {
     private Property testProperty;
     private User testUser;
     private PropertyResponse testResponse;
+
 
     @BeforeEach
     void setUp() {
@@ -76,7 +87,7 @@ class PropertyServiceTest {
         RuntimeException ex = assertThrows(RuntimeException.class,
                 () -> propertyService.getById(999L));
 
-        assertEquals("Nie znaleziono ogloszenia", ex.getMessage());
+        assertEquals("Nie znaleziono ogloszenia o id: 999", ex.getMessage());
         verify(propertyMapper, never()).toResponse(any());
     }
 
@@ -97,7 +108,7 @@ class PropertyServiceTest {
         RuntimeException ex = assertThrows(RuntimeException.class,
                 () -> propertyService.delete(2L, 1L));
 
-        assertEquals("Mozesz kasowac tylko swoje ogloszenia", ex.getMessage());
+        assertEquals("Nie masz uprawnien do tej operacji", ex.getMessage());
         verify(propertyRepository, never()).delete(any());
     }
 
@@ -134,8 +145,78 @@ class PropertyServiceTest {
         RuntimeException ex = assertThrows(RuntimeException.class,
                 () -> propertyService.create(buildRequest(), 999L));
 
-        assertEquals("Nie ma takiego usera", ex.getMessage());
+        assertEquals("Nie znaleziono uzytkownika o id: 999", ex.getMessage());
         verify(propertyRepository, never()).save(any());
+    }
+
+    @Test
+    void update_ShouldUpdateProperty_WhenOwnerEdits() {
+        UpdatePropertyRequest request = new UpdatePropertyRequest();
+        request.setTitle("Zaktualizowany tytuł");
+        request.setDescription("Nowy opis");
+        request.setPrice(new BigDecimal("550000"));
+        request.setCity("Gdańsk");
+        request.setArea(new BigDecimal("70"));
+        request.setPropertyType("MIESZKANIE");
+        request.setNumberOfRooms(4);
+        request.setFloor(3);
+
+        Property saved = new Property();
+        saved.setId(1L);
+        saved.setTitle("Zaktualizowany tytuł");
+        saved.setUser(testUser);
+
+        PropertyResponse expectedResponse = new PropertyResponse();
+        expectedResponse.setId(1L);
+        expectedResponse.setTitle("Zaktualizowany tytuł");
+
+        when(propertyRepository.findById(1L)).thenReturn(Optional.of(testProperty));
+        when(propertyRepository.save(testProperty)).thenReturn(saved);
+        when(propertyMapper.toResponse(saved)).thenReturn(expectedResponse);
+
+        PropertyResponse result = propertyService.update(request, 1L, 1L);
+
+        assertNotNull(result);
+        assertEquals("Zaktualizowany tytuł", result.getTitle());
+        verify(propertyRepository).save(testProperty);
+        verify(propertyMapper).toResponse(saved);
+    }
+
+    @Test
+    void update_ShouldThrowException_WhenNotOwner() {
+        UpdatePropertyRequest request = new UpdatePropertyRequest();
+        request.setTitle("Zaktualizowany tytuł");
+
+        when(propertyRepository.findById(1L)).thenReturn(Optional.of(testProperty));
+
+        RuntimeException ex = assertThrows(RuntimeException.class,
+                () -> propertyService.update(request, 2L, 1L));
+
+        assertEquals("Nie masz uprawnien do tej operacji", ex.getMessage());
+        verify(propertyRepository, never()).save(any());
+    }
+
+    @Test
+    void getAll_ShouldReturnPagedResults() {
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Property> propertyPage = new PageImpl<>(List.of(testProperty), pageable, 1);
+
+        PropertyListResponse listResponse = new PropertyListResponse();
+        listResponse.setId(1L);
+        listResponse.setTitle("Piękne mieszkanie");
+
+        when(propertyRepository.findAllPaged(pageable)).thenReturn(propertyPage);
+        when(propertyRepository.findAllWithImagesByIds(List.of(1L)))
+                .thenReturn(List.of(testProperty));
+        when(propertyMapper.toListResponse(testProperty)).thenReturn(listResponse);
+
+        Page<PropertyListResponse> result = propertyService.getAll(pageable);
+
+        assertNotNull(result);
+        assertEquals(1, result.getTotalElements());
+        assertEquals("Piękne mieszkanie", result.getContent().get(0).getTitle());
+        verify(propertyRepository).findAllPaged(pageable);
+        verify(propertyRepository).findAllWithImagesByIds(List.of(1L));
     }
 
     private CreatePropertyRequest buildRequest() {

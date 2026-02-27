@@ -4,6 +4,8 @@ import com.induohouse.induo_house.dto.response.PropertyListResponse;
 import com.induohouse.induo_house.dto.response.PropertyOwnerResponse;
 import com.induohouse.induo_house.dto.response.PropertyResponse;
 import com.induohouse.induo_house.entity.User;
+import com.induohouse.induo_house.exception.PropertyAccessDeniedException;
+import com.induohouse.induo_house.exception.PropertyNotFoundException;
 import com.induohouse.induo_house.security.JwtService;
 import com.induohouse.induo_house.service.FileStorageService;
 import com.induohouse.induo_house.service.PropertyService;
@@ -91,7 +93,7 @@ class PropertyControllerTest {
     @Test
     void getById_ShouldReturn404_WhenPropertyNotFound() throws Exception {
         when(propertyService.getById(999L))
-                .thenThrow(new RuntimeException("Nie znaleziono ogloszenia"));
+                .thenThrow(new PropertyNotFoundException(999L));
 
         mockMvc().perform(get("/api/properties/999"))
                 .andDo(print())
@@ -189,7 +191,7 @@ class PropertyControllerTest {
         UsernamePasswordAuthenticationToken auth =
                 new UsernamePasswordAuthenticationToken(fakeUser, null, List.of());
 
-        org.mockito.Mockito.doThrow(new RuntimeException("Mozesz kasowac tylko swoje ogloszenia"))
+        org.mockito.Mockito.doThrow(new PropertyAccessDeniedException())
                 .when(propertyService).delete(any(), any());
 
         mockMvc().perform(delete("/api/properties/1")

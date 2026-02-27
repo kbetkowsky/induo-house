@@ -1,11 +1,11 @@
 package com.induohouse.induo_house.exception;
 
-public class UserNotFoundException extends RuntimeException{
+public class UserNotFoundException extends RuntimeException {
     public UserNotFoundException(String email) {
-        super("User not found: " + email);
+        super("Nie znaleziono uzytkownika: " + email);
     }
 
     public UserNotFoundException(Long id) {
-        super("User not found with ID: " + id);
+        super("Nie znaleziono uzytkownika o id: " + id);
     }
 }

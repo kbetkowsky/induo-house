@@ -21,7 +21,12 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest
+@SpringBootTest(properties = {
+        "spring.datasource.url=jdbc:tc:postgresql:15:///testdb",
+        "spring.datasource.driver-class-name=org.testcontainers.jdbc.ContainerDatabaseDriver",
+        "spring.flyway.enabled=true",
+        "spring.jpa.hibernate.ddl-auto=validate"
+})
 @Testcontainers
 class PropertyIntegrationTest {
 
@@ -31,15 +36,6 @@ class PropertyIntegrationTest {
                     .withDatabaseName("testdb")
                     .withUsername("test")
                     .withPassword("test");
-
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-        registry.add("spring.flyway.enabled", () -> "true");
-        registry.add("spring.jpa.hibernate.ddl-auto", () -> "validate");
-    }
 
     @Autowired private PropertyRepository propertyRepository;
     @Autowired private UserRepository userRepository;
@@ -107,6 +103,35 @@ class PropertyIntegrationTest {
                 savedUser.getId(), PageRequest.of(0, 10));
 
         assertEquals(2, page.getTotalElements());
+    }
+
+    @Test
+    void createProperty_ShouldPersistToDatabase() {
+        Property property = buildProperty("Nowe mieszkanie", "Wrocław", new BigDecimal("420000"));
+
+        Property saved = propertyRepository.save(property);
+
+        assertNotNull(saved.getId());
+        Optional<Property> fromDb = propertyRepository.findById(saved.getId());
+        assertTrue(fromDb.isPresent());
+        assertEquals("Nowe mieszkanie", fromDb.get().getTitle());
+        assertEquals("Wrocław", fromDb.get().getCity());
+        assertEquals(0, new BigDecimal("420000").compareTo(fromDb.get().getPrice()));
+        assertEquals(savedUser.getId(), fromDb.get().getUser().getId());
+    }
+
+    @Test
+    void deleteProperty_ShouldRemoveFromDatabase() {
+        Property saved = propertyRepository.save(
+                buildProperty("Do usuniecia", "Poznań", new BigDecimal("350000")));
+        Long id = saved.getId();
+        assertTrue(propertyRepository.findById(id).isPresent());
+
+        propertyRepository.deleteById(id);
+
+        assertFalse(propertyRepository.findById(id).isPresent());
+        assertEquals(0, propertyRepository.findByUserId(
+                savedUser.getId(), PageRequest.of(0, 10)).getTotalElements());
     }
 
     private Property buildProperty(String title, String city, BigDecimal price) {
