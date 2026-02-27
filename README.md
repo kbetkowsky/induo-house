@@ -1,5 +1,7 @@
 # Induo House
 
+[![CI](https://github.com/kbetkowsky/induo-house/actions/workflows/ci.yml/badge.svg)](https://github.com/kbetkowsky/induo-house/actions/workflows/ci.yml)
+
 Full-stack aplikacja do zarządzania ogłoszeniami nieruchomości — sprzedaż i wynajem.
 Użytkownicy mogą zakładać konta, publikować ogłoszenia ze zdjęciami oraz przeglądać
 i filtrować oferty innych.
