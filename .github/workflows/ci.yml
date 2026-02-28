@@ -1,0 +1,32 @@
+name: CI — Backend Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: Run tests (Java 21 + Docker for Testcontainers)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Make mvnw executable
+        run: chmod +x induo-house/mvnw
+
+      - name: Run tests
+        run: cd induo-house && ./mvnw clean test
+        env:
+          DB_PASSWORD: test_password
+          JWT_SECRET: test_secret_minimum_32_characters_long
