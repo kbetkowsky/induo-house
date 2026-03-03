@@ -19,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.data.domain.Pageable;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -44,6 +45,7 @@ public class PropertyService {
         this.fileStorageService = fileStorageService;
     }
 
+    @Transactional(readOnly = true)
     public Page<PropertyListResponse> getAll(Pageable pageable) {
         Page<Property> page = propertyRepository.findAllPaged(pageable);
 
@@ -63,6 +65,7 @@ public class PropertyService {
         return new PageImpl<>(responses, pageable, page.getTotalElements());
     }
 
+    @Transactional(readOnly = true)
     public PropertyResponse getById(Long id) {
         Property property = propertyRepository.findByIdWithImages(id)
                 .orElseThrow(() -> new PropertyNotFoundException(id));
@@ -84,6 +87,7 @@ public class PropertyService {
                 .map(propertyMapper::toListResponse);
     }
 
+    @Transactional
     public void delete(Long userId, Long propertyId) {
         Property property = propertyRepository.findById(propertyId)
                 .orElseThrow(() -> new PropertyNotFoundException(propertyId));
@@ -96,6 +100,7 @@ public class PropertyService {
         log.info("Property {} deleted by user {}", propertyId, userId);
     }
 
+    @Transactional
     public PropertyResponse create(CreatePropertyRequest request, Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException(userId));
@@ -106,6 +111,7 @@ public class PropertyService {
         return propertyMapper.toResponse(saved);
     }
 
+    @Transactional
     public PropertyResponse updatePatch(UpdatePropertyRequest request, Long userId, Long propertyId) {
         Property property = propertyRepository.findById(propertyId)
                 .orElseThrow(() -> new PropertyNotFoundException(propertyId));
@@ -131,6 +137,7 @@ public class PropertyService {
         return propertyMapper.toResponse(saved);
     }
 
+    @Transactional
     public PropertyResponse update(UpdatePropertyRequest request, Long userId, Long propertyId) {
         Property property = propertyRepository.findById(propertyId)
                 .orElseThrow(() -> new PropertyNotFoundException(propertyId));
@@ -157,6 +164,7 @@ public class PropertyService {
                 .map(propertyMapper::toListResponse);
     }
 
+    @Transactional
     public PropertyImageResponse addImage(Long propertyId, MultipartFile file, boolean isPrimary, Long userId) throws IOException {
         Property property = propertyRepository.findById(propertyId)
                 .orElseThrow(() -> new PropertyNotFoundException(propertyId));
@@ -196,6 +204,7 @@ public class PropertyService {
         return response;
     }
 
+    @Transactional(readOnly = true)
     public Page<PropertyListResponse> search(String city, String propertyType, Pageable pageable) {
         Page<Property> page;
 
@@ -228,6 +237,7 @@ public class PropertyService {
         return new PageImpl<>(responses, pageable, page.getTotalElements());
     }
 
+    @Transactional
     public void deleteImage(Long propertyId, Long imageId, Long userId) throws IOException {
         Property property = propertyRepository.findById(propertyId)
                 .orElseThrow(() -> new PropertyNotFoundException(propertyId));
