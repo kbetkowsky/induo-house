@@ -1,518 +1,444 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import PropertyCard from '@/components/PropertyCard';
-import { PropertyListResponse, PageResponse, SearchParams } from '@/types/property';
-import {
-  Search, MapPin, Building2, Home, Trees, Briefcase,
-  TrendingUp, Shield, Headphones, ChevronRight, ArrowRight,
-  Star
-} from 'lucide-react';
+import { PropertyListResponse, PageResponse } from '@/types/property';
+import { Search, MapPin, Building2, Home, Trees, Briefcase, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
-async function fetchLatest(): Promise<PropertyListResponse[]> {
+async function fetchProperties(page = 0, size = 12, filters: Record<string, string> = {}): Promise<{ content: PropertyListResponse[]; totalPages: number; totalElements: number }> {
   try {
-    const res = await fetch(
-      `${API_BASE}/api/properties?page=0&size=6&sort=createdAt,desc`,
-      { credentials: 'include', cache: 'no-store' }
-    );
-    if (!res.ok) return [];
+    const params = new URLSearchParams({ page: String(page), size: String(size), sort: 'createdAt,desc', ...filters });
+    const res = await fetch(`${API_BASE}/api/properties?${params}`, { credentials: 'include', cache: 'no-store' });
+    if (!res.ok) return { content: [], totalPages: 0, totalElements: 0 };
     const data = await res.json();
-    return data.content ?? [];
-  } catch { return []; }
-}
-
-async function fetchStats(): Promise<{ total: number; cities: number; agents: number }> {
-  try {
-    const res = await fetch(
-      `${API_BASE}/api/properties?page=0&size=1`,
-      { credentials: 'include', cache: 'no-store' }
-    );
-    if (!res.ok) return { total: 0, cities: 0, agents: 0 };
-    const data = await res.json();
-    const total = data.totalElements ?? 0;
-    return { total, cities: Math.max(1, Math.round(total * 0.35)), agents: Math.max(1, Math.round(total * 0.18)) };
-  } catch { return { total: 0, cities: 0, agents: 0 }; }
-}
-
-function useCountUp(target: number, duration = 1400) {
-  const [val, setVal] = useState(0);
-  const started = useRef(false);
-  useEffect(() => {
-    if (target === 0 || started.current) return;
-    started.current = true;
-    const steps = 40;
-    const step = duration / steps;
-    let i = 0;
-    const timer = setInterval(() => {
-      i++;
-      setVal(Math.round((target * i) / steps));
-      if (i >= steps) clearInterval(timer);
-    }, step);
-    return () => clearInterval(timer);
-  }, [target, duration]);
-  return val;
+    return { content: data.content ?? [], totalPages: data.totalPages ?? 0, totalElements: data.totalElements ?? 0 };
+  } catch { return { content: [], totalPages: 0, totalElements: 0 }; }
 }
 
 const CATEGORIES = [
-  { label: 'Mieszkania',   icon: Building2,  type: 'APARTMENT', color: '#3b82f6', bg: 'rgba(59,130,246,0.1)'  },
-  { label: 'Domy',         icon: Home,        type: 'HOUSE',     color: '#10b981', bg: 'rgba(16,185,129,0.1)'  },
-  { label: 'Działki',      icon: Trees,       type: 'LAND',      color: '#f59e0b', bg: 'rgba(245,158,11,0.1)'  },
-  { label: 'Komercyjne',   icon: Briefcase,   type: 'COMMERCIAL',color: '#8b5cf6', bg: 'rgba(139,92,246,0.1)'  },
-];
-
-const FEATURES = [
-  { icon: TrendingUp,   title: 'Tysiące ofert',    desc: 'Największa baza nieruchomości w Polsce — mieszkania, domy, działki, lokale.',    color: '#3b82f6' },
-  { icon: Shield,       title: 'Zweryfikowane',    desc: 'Każde ogłoszenie przechodzi weryfikację. Kupujesz i wynajmujesz bezpiecznie.',     color: '#10b981' },
-  { icon: Headphones,   title: 'Wsparcie 7/7',     desc: 'Nasz zespół ekspertów jest do Twojej dyspozycji każdego dnia tygodnia.',          color: '#f59e0b' },
-];
-
-const TESTIMONIALS = [
-  { name: 'Anna K.',   role: 'Kupująca',    text: 'Znalazłam wymarzone mieszkanie w 3 dni. Niesamowite filtry i super obsługa!', stars: 5 },
-  { name: 'Marek W.',  role: 'Agent',        text: 'Jako pośrednik bardzo cenię InduoHouse za łatwe dodawanie ofert i szeroki zasięg.', stars: 5 },
-  { name: 'Zofia P.',  role: 'Wynajmująca', text: 'Szybko, prosto i bezpiecznie. Polecam każdemu kto szuka mieszkania.',            stars: 5 },
+  {
+    label: 'Mieszkania', type: 'APARTMENT', icon: Building2,
+    img: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=400&q=80',
+  },
+  {
+    label: 'Domy', type: 'HOUSE', icon: Home,
+    img: 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=400&q=80',
+  },
+  {
+    label: 'Działki', type: 'LAND', icon: Trees,
+    img: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=400&q=80',
+  },
+  {
+    label: 'Lokale użytkowe', type: 'COMMERCIAL', icon: Briefcase,
+    img: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=400&q=80',
+  },
 ];
 
 export default function HomePage() {
   const router = useRouter();
-  const [city, setCity]           = useState('');
-  const [txType, setTxType]       = useState('');
-  const [propType, setPropType]   = useState('');
-  const [latest, setLatest]       = useState<PropertyListResponse[]>([]);
-  const [loadingLatest, setLoadingLatest] = useState(true);
-  const [stats, setStats]         = useState({ total: 0, cities: 0, agents: 0 });
-  const [heroLoaded, setHeroLoaded] = useState(false);
 
-  const countTotal  = useCountUp(stats.total);
-  const countCities = useCountUp(stats.cities);
-  const countAgents = useCountUp(stats.agents);
+  // search state
+  const [city, setCity] = useState('');
+  const [txType, setTxType] = useState('');
+  const [propType, setPropType] = useState('');
+  const [priceFrom, setPriceFrom] = useState('');
+  const [priceTo, setPriceTo] = useState('');
+  const [areaFrom, setAreaFrom] = useState('');
+  const [areaTo, setAreaTo] = useState('');
+  const [activeTab, setActiveTab] = useState<'SALE' | 'RENT'>('SALE');
 
-  useEffect(() => {
-    setHeroLoaded(true);
-    fetchLatest().then(d => { setLatest(d); setLoadingLatest(false); });
-    fetchStats().then(setStats);
-  }, []);
+  // listings state
+  const [listings, setListings] = useState<PropertyListResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+
+  const loadListings = useCallback(async (p = 0) => {
+    setLoading(true);
+    const filters: Record<string, string> = {};
+    if (activeTab) filters.transactionType = activeTab;
+    const result = await fetchProperties(p, 12, filters);
+    setListings(result.content);
+    setTotalPages(result.totalPages);
+    setTotalElements(result.totalElements);
+    setLoading(false);
+  }, [activeTab]);
+
+  useEffect(() => { setPage(0); loadListings(0); }, [activeTab, loadListings]);
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+    loadListings(newPage);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     const p = new URLSearchParams();
-    if (city)     p.set('city', city);
-    if (txType)   p.set('transactionType', txType);
+    if (city) p.set('city', city);
+    if (txType || activeTab) p.set('transactionType', txType || activeTab);
     if (propType) p.set('propertyType', propType);
+    if (priceFrom) p.set('priceFrom', priceFrom);
+    if (priceTo) p.set('priceTo', priceTo);
+    if (areaFrom) p.set('areaFrom', areaFrom);
+    if (areaTo) p.set('areaTo', areaTo);
     router.push(`/properties?${p.toString()}`);
   };
 
   return (
-    <div style={{ background: 'var(--bg-base)', minHeight: '100vh' }}>
+    <div style={{ background: '#f2f4f5', minHeight: '100vh' }}>
       <style>{`
-        @keyframes fadeUp   { from { opacity:0; transform:translateY(32px); } to { opacity:1; transform:translateY(0); } }
-        @keyframes fadeIn   { from { opacity:0; } to { opacity:1; } }
-        @keyframes gradAnim { 0%,100% { background-position:0% 50%; } 50% { background-position:100% 50%; } }
-        @keyframes float    { 0%,100% { transform:translateY(0px); } 50% { transform:translateY(-10px); } }
-        @keyframes blobMove {
-          0%,100% { transform: translate(0,0) scale(1); }
-          33%     { transform: translate(30px,-20px) scale(1.05); }
-          66%     { transform: translate(-20px,15px) scale(0.97); }
+        .hero-section {
+          position: relative;
+          height: 340px;
+          background: url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1600&q=85') center/cover no-repeat;
         }
-        .hero-blob {
-          position:absolute; border-radius:50%; filter:blur(80px);
-          animation: blobMove 12s ease-in-out infinite;
-          pointer-events:none;
+        .hero-overlay {
+          position: absolute; inset: 0;
+          background: linear-gradient(to bottom, rgba(0,0,0,0.38) 0%, rgba(0,0,0,0.52) 100%);
+          display: flex; flex-direction: column;
+          align-items: center; justify-content: center;
+          padding: 0 16px;
+        }
+        .hero-title {
+          color: #fff; font-size: clamp(1.6rem, 4vw, 2.4rem);
+          font-weight: 800; text-align: center; margin-bottom: 6px;
+          letter-spacing: -0.02em; text-shadow: 0 2px 8px rgba(0,0,0,0.4);
+        }
+        .hero-sub {
+          color: rgba(255,255,255,0.85); font-size: 1rem;
+          margin-bottom: 28px; text-align: center;
+          text-shadow: 0 1px 4px rgba(0,0,0,0.3);
+        }
+        .search-box {
+          background: #fff; border-radius: 8px;
+          box-shadow: 0 4px 32px rgba(0,0,0,0.22);
+          width: 100%; max-width: 860px;
+          overflow: hidden;
+        }
+        .search-tabs {
+          display: flex; border-bottom: 1px solid #e5e7eb;
+        }
+        .search-tab {
+          padding: 12px 24px; font-size: 14px; font-weight: 600;
+          cursor: pointer; border: none; background: none;
+          color: #6b7280; transition: color 0.2s, border-bottom 0.2s;
+          border-bottom: 3px solid transparent; font-family: inherit;
+        }
+        .search-tab.active {
+          color: #c0392b; border-bottom-color: #c0392b;
+        }
+        .search-fields {
+          display: grid;
+          grid-template-columns: 1fr 160px 160px 160px auto;
+          gap: 0; align-items: stretch;
+        }
+        .sf-group {
+          display: flex; flex-direction: column;
+          padding: 10px 16px; border-right: 1px solid #f0f0f0;
+        }
+        .sf-label {
+          font-size: 10px; font-weight: 700; color: #9ca3af;
+          text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px;
+        }
+        .sf-input, .sf-select {
+          border: none; outline: none; font-size: 14px;
+          font-weight: 500; color: #111827; background: none;
+          font-family: inherit; width: 100%; padding: 0;
+        }
+        .sf-select { cursor: pointer; appearance: none; }
+        .sf-row { display: flex; align-items: center; gap: 4px; }
+        .sf-sep { color: #d1d5db; font-size: 12px; }
+        .sf-num { width: 60px; border: none; outline: none; font-size: 14px; font-weight: 500; color: #111827; background: none; font-family: inherit; }
+        .sf-unit { font-size: 12px; color: #9ca3af; }
+        .search-btn-hero {
+          padding: 0 28px; background: #c0392b; color: #fff;
+          border: none; cursor: pointer; font-size: 15px; font-weight: 700;
+          display: flex; align-items: center; gap: 8px; font-family: inherit;
+          transition: background 0.2s;
+        }
+        .search-btn-hero:hover { background: #a93226; }
+
+        .section-wrap { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+        .section-title-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; margin-top: 40px; }
+        .section-heading { font-size: 1.25rem; font-weight: 800; color: #111827; }
+        .see-all-link { font-size: 13px; color: #c0392b; font-weight: 600; text-decoration: none; }
+        .see-all-link:hover { text-decoration: underline; }
+
+        .category-grid {
+          display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+          margin-bottom: 8px;
         }
         .category-card {
-          display:flex; flex-direction:column; align-items:center; gap:12px;
-          padding:28px 20px; border-radius:18px;
-          border:1px solid var(--border-card);
-          background:var(--bg-surface);
-          cursor:pointer; text-decoration:none;
-          transition:transform 0.25s, box-shadow 0.25s, border-color 0.25s;
-          box-shadow: var(--shadow-card);
+          border-radius: 10px; overflow: hidden;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+          text-decoration: none; display: block;
+          transition: transform 0.2s, box-shadow 0.2s;
+          background: #fff;
         }
-        .category-card:hover {
-          transform:translateY(-6px);
-          box-shadow:var(--shadow-card-hover);
-          border-color:var(--border-hover);
+        .category-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.14); }
+        .category-img { width: 100%; height: 160px; object-fit: cover; display: block; }
+        .category-label {
+          padding: 12px 14px; font-size: 14px; font-weight: 700;
+          color: #111827; display: flex; align-items: center; gap: 6px;
         }
-        .feature-card {
-          padding:28px; border-radius:18px;
-          border:1px solid var(--border-card);
-          background:var(--bg-surface);
-          box-shadow:var(--shadow-card);
-          transition:transform 0.25s, box-shadow 0.25s;
+
+        .listings-tabs {
+          display: flex; gap: 0; margin-bottom: 20px;
+          border-bottom: 2px solid #e5e7eb;
         }
-        .feature-card:hover { transform:translateY(-4px); box-shadow:var(--shadow-card-hover); }
-        .testimonial-card {
-          padding:24px; border-radius:16px;
-          border:1px solid var(--border-card);
-          background:var(--bg-surface);
-          box-shadow:var(--shadow-card);
+        .listings-tab {
+          padding: 10px 20px; font-size: 14px; font-weight: 700;
+          cursor: pointer; border: none; background: none;
+          color: #6b7280; border-bottom: 3px solid transparent;
+          margin-bottom: -2px; transition: color 0.2s; font-family: inherit;
         }
-        .search-input {
-          width:100%; padding:13px 16px;
-          background:rgba(255,255,255,0.1);
-          border:1px solid rgba(255,255,255,0.2);
-          border-radius:12px; color:#fff;
-          font-size:14px; font-family:inherit;
-          outline:none; transition:border-color 0.2s, background 0.2s;
-          backdrop-filter:blur(4px);
+        .listings-tab.active { color: #c0392b; border-bottom-color: #c0392b; }
+
+        .listings-grid {
+          display: grid; grid-template-columns: repeat(auto-fill, minmax(272px, 1fr)); gap: 18px;
         }
-        .search-input::placeholder { color:rgba(255,255,255,0.5); }
-        .search-input:focus { border-color:rgba(255,255,255,0.5); background:rgba(255,255,255,0.15); }
-        .search-select {
-          width:100%; padding:13px 16px;
-          background:rgba(255,255,255,0.1);
-          border:1px solid rgba(255,255,255,0.2);
-          border-radius:12px; color:#fff;
-          font-size:14px; font-family:inherit;
-          outline:none; appearance:none;
-          backdrop-filter:blur(4px);
-          cursor:pointer;
+        .skeleton-card { border-radius: 10px; overflow: hidden; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+
+        .pagination {
+          display: flex; align-items: center; justify-content: center;
+          gap: 6px; margin: 40px 0 60px;
         }
-        .search-select option { background:#1e293b; color:#f1f5f9; }
-        .search-btn {
-          padding:13px 28px;
-          background:linear-gradient(135deg,#2563eb,#1d4ed8);
-          border:none; border-radius:12px;
-          color:#fff; font-size:15px; font-weight:700;
-          cursor:pointer; white-space:nowrap;
-          display:flex; align-items:center; gap:8px;
-          transition:opacity 0.2s, transform 0.2s;
-          font-family:inherit;
-          box-shadow:0 4px 20px rgba(37,99,235,0.5);
+        .page-btn {
+          min-width: 36px; height: 36px; border-radius: 6px;
+          border: 1px solid #e5e7eb; background: #fff;
+          font-size: 13px; font-weight: 600; color: #374151;
+          cursor: pointer; display: flex; align-items: center; justify-content: center;
+          font-family: inherit; transition: all 0.15s; padding: 0 10px;
         }
-        .search-btn:hover { opacity:0.9; transform:translateY(-1px); }
-        .stat-item {
-          text-align:center; padding:0 24px;
+        .page-btn:hover:not(:disabled) { border-color: #c0392b; color: #c0392b; }
+        .page-btn.active { background: #c0392b; border-color: #c0392b; color: #fff; }
+        .page-btn:disabled { opacity: 0.35; cursor: default; }
+
+        .total-badge {
+          display: inline-flex; align-items: center;
+          background: #fff5f5; color: #c0392b;
+          border: 1px solid #fecdd3; border-radius: 99px;
+          font-size: 12px; font-weight: 700; padding: 3px 12px;
         }
-        .stat-item + .stat-item {
-          border-left:1px solid rgba(255,255,255,0.12);
+
+        @media (max-width: 900px) {
+          .search-fields { grid-template-columns: 1fr auto !important; }
+          .sf-group.hide-mobile { display: none; }
+          .category-grid { grid-template-columns: repeat(2, 1fr); }
         }
-        .section-label {
-          font-size:11px; font-weight:800;
-          text-transform:uppercase; letter-spacing:0.12em;
-          color:var(--accent-bright); margin-bottom:10px;
-        }
-        .section-title {
-          font-size:clamp(1.6rem,3vw,2.2rem);
-          font-weight:800; letter-spacing:-0.025em;
-          color:var(--text-primary); line-height:1.2;
-        }
-        @media (max-width:768px) {
-          .hero-search-grid { grid-template-columns:1fr !important; }
-          .categories-grid  { grid-template-columns:1fr 1fr !important; }
-          .features-grid    { grid-template-columns:1fr !important; }
-          .stats-row        { flex-direction:column; gap:20px !important; }
-          .stat-item + .stat-item { border-left:none; border-top:1px solid rgba(255,255,255,0.12); padding-top:20px; }
+        @media (max-width: 600px) {
+          .hero-section { height: 400px; }
+          .search-fields { grid-template-columns: 1fr auto !important; }
+          .category-grid { grid-template-columns: repeat(2, 1fr); }
+          .listings-grid { grid-template-columns: 1fr; }
         }
       `}</style>
 
       {/* ══════════ HERO ══════════ */}
-      <section style={{
-        position:'relative', overflow:'hidden',
-        background:'linear-gradient(135deg,#020818 0%,#0a1628 40%,#0d1f3c 70%,#091428 100%)',
-        paddingTop:140, paddingBottom:90,
-      }}>
-        {/* Animated blobs */}
-        <div className="hero-blob" style={{ width:520, height:520, background:'rgba(37,99,235,0.18)', top:-100, left:-120, animationDelay:'0s' }} />
-        <div className="hero-blob" style={{ width:400, height:400, background:'rgba(139,92,246,0.12)', top:80, right:-80,  animationDelay:'-4s' }} />
-        <div className="hero-blob" style={{ width:300, height:300, background:'rgba(16,185,129,0.08)', bottom:-60, left:'40%', animationDelay:'-8s' }} />
+      <div className="hero-section">
+        <div className="hero-overlay">
+          <h1 className="hero-title">Adresujemy marzenia</h1>
+          <p className="hero-sub">Znajdź dom, który Ci odpowiada</p>
 
-        {/* Subtle grid overlay */}
-        <div style={{
-          position:'absolute', inset:0, pointerEvents:'none',
-          backgroundImage:'linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px)',
-          backgroundSize:'60px 60px',
-        }} />
-
-        <div style={{ maxWidth:900, margin:'0 auto', padding:'0 24px', position:'relative', zIndex:1 }}>
-
-          {/* Badge */}
-          <div style={{
-            display:'inline-flex', alignItems:'center', gap:8,
-            background:'rgba(37,99,235,0.15)', border:'1px solid rgba(59,130,246,0.25)',
-            borderRadius:99, padding:'6px 16px', marginBottom:28,
-            opacity: heroLoaded ? 1 : 0,
-            animation: heroLoaded ? 'fadeIn 0.5s ease 0.1s both' : 'none',
-          }}>
-            <span style={{ width:6, height:6, borderRadius:'50%', background:'#4ade80', display:'inline-block', boxShadow:'0 0 8px #4ade80' }} />
-            <span style={{ fontSize:12, fontWeight:700, color:'rgba(255,255,255,0.8)', letterSpacing:'0.06em' }}>
-              PLATFORMA NIERUCHOMOŚCI #1 W POLSCE
-            </span>
-          </div>
-
-          {/* Headline */}
-          <h1 style={{
-            fontSize:'clamp(2.2rem, 5.5vw, 3.8rem)',
-            fontWeight:900, lineHeight:1.1,
-            letterSpacing:'-0.035em', color:'#fff',
-            marginBottom:22,
-            opacity: heroLoaded ? 1 : 0,
-            animation: heroLoaded ? 'fadeUp 0.7s cubic-bezier(.22,1,.36,1) 0.15s both' : 'none',
-          }}>
-            Znajdź swoje<br />
-            <span style={{
-              background:'linear-gradient(135deg,#60a5fa 0%,#a78bfa 60%,#34d399 100%)',
-              WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent',
-              backgroundClip:'text',
-            }}>wymarzone miejsce</span>
-          </h1>
-
-          <p style={{
-            fontSize:'clamp(1rem,2vw,1.15rem)', color:'rgba(255,255,255,0.58)',
-            maxWidth:560, lineHeight:1.7, marginBottom:40,
-            opacity: heroLoaded ? 1 : 0,
-            animation: heroLoaded ? 'fadeUp 0.7s cubic-bezier(.22,1,.36,1) 0.25s both' : 'none',
-          }}>
-            Tysiące ogłoszeń mieszkań, domów i działek w całej Polsce.
-            Szybko, bezpiecznie i bezpłatnie.
-          </p>
-
-          {/* Search form */}
-          <form onSubmit={handleSearch} style={{
-            background:'rgba(255,255,255,0.06)',
-            backdropFilter:'blur(20px)',
-            border:'1px solid rgba(255,255,255,0.1)',
-            borderRadius:20, padding:'20px 20px',
-            opacity: heroLoaded ? 1 : 0,
-            animation: heroLoaded ? 'fadeUp 0.7s cubic-bezier(.22,1,.36,1) 0.35s both' : 'none',
-          }}>
-            <div className="hero-search-grid" style={{ display:'grid', gridTemplateColumns:'2fr 1fr 1fr auto', gap:10, alignItems:'center' }}>
-              <div style={{ position:'relative' }}>
-                <MapPin size={15} style={{ position:'absolute', left:14, top:'50%', transform:'translateY(-50%)', color:'rgba(255,255,255,0.4)', pointerEvents:'none' }} />
-                <input
-                  className="search-input"
-                  style={{ paddingLeft:38 }}
-                  placeholder="Miasto lub region…"
-                  value={city}
-                  onChange={e => setCity(e.target.value)}
-                />
-              </div>
-              <select className="search-select" value={txType} onChange={e => setTxType(e.target.value)}>
-                <option value="">Oferta</option>
-                <option value="SALE">Sprzedaż</option>
-                <option value="RENT">Wynajem</option>
-              </select>
-              <select className="search-select" value={propType} onChange={e => setPropType(e.target.value)}>
-                <option value="">Typ</option>
-                <option value="APARTMENT">Mieszkanie</option>
-                <option value="HOUSE">Dom</option>
-                <option value="LAND">Działka</option>
-                <option value="COMMERCIAL">Komercyjne</option>
-              </select>
-              <button type="submit" className="search-btn">
-                <Search size={16} /> Szukaj
-              </button>
+          <div className="search-box">
+            {/* Tabs */}
+            <div className="search-tabs">
+              <button
+                className={`search-tab ${activeTab === 'SALE' ? 'active' : ''}`}
+                onClick={() => setActiveTab('SALE')}
+              >Szukaj</button>
+              <button
+                className={`search-tab ${activeTab === 'RENT' ? 'active' : ''}`}
+                onClick={() => setActiveTab('RENT')}
+              >Na wynajem</button>
             </div>
-          </form>
 
-          {/* Stats */}
-          {stats.total > 0 && (
-            <div className="stats-row" style={{
-              display:'flex', alignItems:'center', justifyContent:'center',
-              gap:0, marginTop:44,
-              opacity: heroLoaded ? 1 : 0,
-              animation: heroLoaded ? 'fadeIn 0.7s ease 0.7s both' : 'none',
-            }}>
-              {[
-                { val: countTotal,  label: 'Ogłoszeń',   suffix: '+' },
-                { val: countCities, label: 'Miast',       suffix: '+' },
-                { val: countAgents, label: 'Agentów',     suffix: '+' },
-              ].map(({ val, label, suffix }) => (
-                <div key={label} className="stat-item">
-                  <div style={{ fontSize:'clamp(1.6rem,3vw,2.2rem)', fontWeight:900, color:'#fff', letterSpacing:'-0.03em', lineHeight:1 }}>
-                    {val.toLocaleString('pl-PL')}{suffix}
-                  </div>
-                  <div style={{ fontSize:12, color:'rgba(255,255,255,0.45)', marginTop:5, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.08em' }}>
-                    {label}
+            {/* Fields */}
+            <form onSubmit={handleSearch}>
+              <div className="search-fields">
+                {/* Typ */}
+                <div className="sf-group">
+                  <span className="sf-label">Typ nieruchomości</span>
+                  <div className="sf-row">
+                    <select className="sf-select" value={propType} onChange={e => setPropType(e.target.value)}>
+                      <option value="">Mieszkania</option>
+                      <option value="APARTMENT">Mieszkanie</option>
+                      <option value="HOUSE">Dom</option>
+                      <option value="LAND">Działka</option>
+                      <option value="COMMERCIAL">Komercyjne</option>
+                    </select>
+                    <ChevronDown size={14} style={{ color: '#9ca3af', flexShrink: 0 }} />
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
+
+                {/* Lokalizacja */}
+                <div className="sf-group" style={{ flex: 1, gridColumn: 'span 1' }}>
+                  <span className="sf-label">Lokalizacja</span>
+                  <div className="sf-row">
+                    <MapPin size={13} style={{ color: '#9ca3af', flexShrink: 0 }} />
+                    <input
+                      className="sf-input"
+                      placeholder="Wpisz lokalizację"
+                      value={city}
+                      onChange={e => setCity(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                {/* Cena */}
+                <div className="sf-group hide-mobile">
+                  <span className="sf-label">Cena</span>
+                  <div className="sf-row">
+                    <input className="sf-num" placeholder="od" value={priceFrom} onChange={e => setPriceFrom(e.target.value)} />
+                    <span className="sf-sep">–</span>
+                    <input className="sf-num" placeholder="do" value={priceTo} onChange={e => setPriceTo(e.target.value)} />
+                    <span className="sf-unit">zł</span>
+                  </div>
+                </div>
+
+                {/* Powierzchnia */}
+                <div className="sf-group hide-mobile">
+                  <span className="sf-label">Powierzchnia</span>
+                  <div className="sf-row">
+                    <input className="sf-num" placeholder="od" value={areaFrom} onChange={e => setAreaFrom(e.target.value)} />
+                    <span className="sf-sep">–</span>
+                    <input className="sf-num" placeholder="do" value={areaTo} onChange={e => setAreaTo(e.target.value)} />
+                    <span className="sf-unit">m²</span>
+                  </div>
+                </div>
+
+                {/* Button */}
+                <button type="submit" className="search-btn-hero">
+                  <Search size={16} /> Wyszukaj
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
-      </section>
+      </div>
 
       {/* ══════════ KATEGORIE ══════════ */}
-      <section style={{ maxWidth:1200, margin:'0 auto', padding:'80px 24px 40px' }}>
-        <div style={{ textAlign:'center', marginBottom:44 }}>
-          <p className="section-label">Szukaj wg kategorii</p>
-          <h2 className="section-title">Co Cię interesuje?</h2>
+      <div className="section-wrap">
+        <div className="section-title-row">
+          <h2 className="section-heading">Rodzaje nieruchomości</h2>
         </div>
-        <div className="categories-grid" style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:16 }}>
-          {CATEGORIES.map(({ label, icon: Icon, type, color, bg }) => (
-            <Link key={type} href={`/properties?propertyType=${type}`} className="category-card">
-              <div style={{ width:56, height:56, borderRadius:16, background:bg, display:'flex', alignItems:'center', justifyContent:'center' }}>
-                <Icon size={26} style={{ color }} />
+
+        <div className="category-grid">
+          {CATEGORIES.map(({ label, type, icon: Icon, img }) => (
+            <Link key={type} href={`/properties?propertyType=${type}&transactionType=${activeTab}`} className="category-card">
+              <img src={img} alt={label} className="category-img" />
+              <div className="category-label">
+                <Icon size={16} style={{ color: '#c0392b' }} />
+                {label}
               </div>
-              <span style={{ fontSize:15, fontWeight:700, color:'var(--text-primary)' }}>{label}</span>
-              <span style={{ fontSize:12, color:'var(--text-muted)', display:'flex', alignItems:'center', gap:4 }}>
-                Przeglądaj <ChevronRight size={13} />
-              </span>
             </Link>
           ))}
         </div>
-      </section>
+      </div>
 
-      {/* ══════════ NAJNOWSZE OFERTY ══════════ */}
-      <section style={{ maxWidth:1200, margin:'0 auto', padding:'20px 24px 80px' }}>
-        <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between', marginBottom:36, flexWrap:'wrap', gap:12 }}>
+      {/* ══════════ WSZYSTKIE OGŁOSZENIA ══════════ */}
+      <div className="section-wrap">
+        <div className="section-title-row">
           <div>
-            <p className="section-label">Wieże oferty</p>
-            <h2 className="section-title">Najnowsze ogłoszenia</h2>
+            <h2 className="section-heading" style={{ marginBottom: 4 }}>
+              {activeTab === 'SALE' ? 'Nieruchomości na sprzedaż' : 'Nieruchomości na wynajem'}
+            </h2>
+            {totalElements > 0 && (
+              <span className="total-badge">{totalElements.toLocaleString('pl-PL')} ogłoszeń</span>
+            )}
           </div>
-          <Link href="/properties" style={{
-            display:'inline-flex', alignItems:'center', gap:6,
-            padding:'10px 20px', borderRadius:12,
-            background:'var(--bg-surface)', border:'1px solid var(--border-card)',
-            color:'var(--text-secondary)', textDecoration:'none',
-            fontSize:13, fontWeight:600,
-            transition:'border-color 0.2s, color 0.2s',
-            boxShadow:'var(--shadow-card)',
-          }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-hover)'; e.currentTarget.style.color = 'var(--accent-bright)'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-card)';  e.currentTarget.style.color = 'var(--text-secondary)'; }}
-          >
-            Zobacz wszystkie <ArrowRight size={14} />
-          </Link>
+          <Link href="/properties" className="see-all-link">Zobacz wszystkie →</Link>
         </div>
 
-        {loadingLatest ? (
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))', gap:20 }}>
-            {Array.from({ length:6 }).map((_, i) => (
-              <div key={i} style={{ borderRadius:16, border:'1px solid var(--border-card)', background:'var(--bg-surface)', overflow:'hidden' }}>
-                <div className="skeleton" style={{ height:200 }} />
-                <div style={{ padding:16, display:'flex', flexDirection:'column', gap:10 }}>
-                  <div className="skeleton" style={{ height:15, borderRadius:6, width:'75%' }} />
-                  <div className="skeleton" style={{ height:13, borderRadius:6, width:'50%' }} />
+        {/* Tabs sprzedaż/wynajem */}
+        <div className="listings-tabs">
+          <button
+            className={`listings-tab ${activeTab === 'SALE' ? 'active' : ''}`}
+            onClick={() => setActiveTab('SALE')}
+          >Na sprzedaż</button>
+          <button
+            className={`listings-tab ${activeTab === 'RENT' ? 'active' : ''}`}
+            onClick={() => setActiveTab('RENT')}
+          >Na wynajem</button>
+        </div>
+
+        {/* Grid ogłoszeń */}
+        {loading ? (
+          <div className="listings-grid">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <div key={i} className="skeleton-card">
+                <div className="skeleton" style={{ height: 200 }} />
+                <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div className="skeleton" style={{ height: 14, borderRadius: 4, width: '70%' }} />
+                  <div className="skeleton" style={{ height: 12, borderRadius: 4, width: '50%' }} />
+                  <div className="skeleton" style={{ height: 12, borderRadius: 4, width: '40%' }} />
                 </div>
               </div>
             ))}
           </div>
-        ) : latest.length > 0 ? (
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(290px,1fr))', gap:20 }}>
-            {latest.map(p => <PropertyCard key={p.id} property={p} />)}
+        ) : listings.length > 0 ? (
+          <div className="listings-grid">
+            {listings.map(p => <PropertyCard key={p.id} property={p} />)}
           </div>
         ) : (
-          <div style={{ textAlign:'center', padding:'60px 24px', borderRadius:18, border:'1px solid var(--border-card)', background:'var(--bg-surface)' }}>
-            <Building2 size={48} style={{ color:'var(--text-faint)', margin:'0 auto 16px', display:'block' }} />
-            <p style={{ color:'var(--text-muted)', fontSize:15 }}>Brak ogłoszeń</p>
+          <div style={{
+            textAlign: 'center', padding: '60px 24px',
+            borderRadius: 12, background: '#fff',
+            border: '1px solid #e5e7eb',
+          }}>
+            <Building2 size={48} style={{ color: '#d1d5db', margin: '0 auto 16px', display: 'block' }} />
+            <p style={{ color: '#9ca3af', fontSize: 15 }}>Brak ogłoszeń w tej kategorii</p>
+            <Link href="/properties" style={{ color: '#c0392b', fontSize: 14, fontWeight: 600, marginTop: 8, display: 'inline-block' }}>
+              Przeglądaj wszystkie →
+            </Link>
           </div>
         )}
-      </section>
 
-      {/* ══════════ DLACZEGO MY ══════════ */}
-      <section style={{ background:'var(--bg-surface)', borderTop:'1px solid var(--border-card)', borderBottom:'1px solid var(--border-card)' }}>
-        <div style={{ maxWidth:1200, margin:'0 auto', padding:'80px 24px' }}>
-          <div style={{ textAlign:'center', marginBottom:52 }}>
-            <p className="section-label">Dlaczego InduoHouse</p>
-            <h2 className="section-title">Wszystko czego potrzebujesz</h2>
-            <p style={{ color:'var(--text-muted)', fontSize:15, marginTop:12, maxWidth:480, margin:'14px auto 0' }}>
-              Stworzyłiśmy platformę, która łączy kupujących, wynajmujących i agentów w jednym miejscu.
-            </p>
-          </div>
-          <div className="features-grid" style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:24 }}>
-            {FEATURES.map(({ icon: Icon, title, desc, color }) => (
-              <div key={title} className="feature-card">
-                <div style={{ width:52, height:52, borderRadius:14, background:`${color}18`, display:'flex', alignItems:'center', justifyContent:'center', marginBottom:18 }}>
-                  <Icon size={24} style={{ color }} />
-                </div>
-                <h3 style={{ fontSize:17, fontWeight:800, color:'var(--text-primary)', marginBottom:10 }}>{title}</h3>
-                <p style={{ fontSize:14, color:'var(--text-muted)', lineHeight:1.7 }}>{desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ══════════ OPINIE ══════════ */}
-      <section style={{ maxWidth:1200, margin:'0 auto', padding:'80px 24px' }}>
-        <div style={{ textAlign:'center', marginBottom:44 }}>
-          <p className="section-label">Opinie użytkowników</p>
-          <h2 className="section-title">Co mówią nasi użytkownicy</h2>
-        </div>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))', gap:20 }}>
-          {TESTIMONIALS.map(({ name, role, text, stars }) => (
-            <div key={name} className="testimonial-card">
-              <div style={{ display:'flex', gap:2, marginBottom:14 }}>
-                {Array.from({ length: stars }).map((_, i) => (
-                  <Star key={i} size={15} style={{ color:'#f59e0b' }} fill="#f59e0b" />
-                ))}
-              </div>
-              <p style={{ fontSize:14, color:'var(--text-secondary)', lineHeight:1.75, marginBottom:16, fontStyle:'italic' }}>
-                &ldquo;{text}&rdquo;
-              </p>
-              <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                <div style={{ width:36, height:36, borderRadius:10, background:'linear-gradient(135deg,#3b82f6,#8b5cf6)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:800, color:'#fff' }}>
-                  {name[0]}
-                </div>
-                <div>
-                  <p style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)', margin:0 }}>{name}</p>
-                  <p style={{ fontSize:11, color:'var(--text-muted)', margin:0 }}>{role}</p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ══════════ CTA BANNER ══════════ */}
-      <section style={{ padding:'0 24px 80px' }}>
-        <div style={{
-          maxWidth:1200, margin:'0 auto',
-          borderRadius:24,
-          background:'linear-gradient(135deg,#1e3a8a 0%,#2563eb 50%,#7c3aed 100%)',
-          padding:'60px 48px',
-          display:'flex', alignItems:'center', justifyContent:'space-between',
-          flexWrap:'wrap', gap:32,
-          position:'relative', overflow:'hidden',
-        }}>
-          {/* decorative blobs */}
-          <div style={{ position:'absolute', width:300, height:300, borderRadius:'50%', background:'rgba(255,255,255,0.05)', top:-100, right:100, pointerEvents:'none' }} />
-          <div style={{ position:'absolute', width:200, height:200, borderRadius:'50%', background:'rgba(255,255,255,0.06)', bottom:-80, right:-40, pointerEvents:'none' }} />
-
-          <div style={{ position:'relative' }}>
-            <h2 style={{ fontSize:'clamp(1.5rem,3vw,2rem)', fontWeight:900, color:'#fff', margin:'0 0 10px', letterSpacing:'-0.025em' }}>
-              Masz nieruchomość do sprzedania?
-            </h2>
-            <p style={{ color:'rgba(255,255,255,0.65)', fontSize:15, margin:0, maxWidth:480 }}>
-              Dodaj ogłoszenie w 2 minuty i dotrzyj do tysięcy potencjalnych kupujących.
-            </p>
-          </div>
-          <div style={{ display:'flex', gap:12, flexShrink:0, position:'relative' }}>
-            <Link href="/register" style={{
-              padding:'13px 28px', borderRadius:12,
-              background:'#fff', color:'#1e3a8a',
-              textDecoration:'none', fontSize:14, fontWeight:800,
-              display:'flex', alignItems:'center', gap:8,
-              boxShadow:'0 4px 20px rgba(0,0,0,0.2)',
-              transition:'opacity 0.2s',
-            }}
-              onMouseEnter={e => e.currentTarget.style.opacity = '0.9'}
-              onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+        {/* Paginacja */}
+        {totalPages > 1 && (
+          <div className="pagination">
+            <button
+              className="page-btn"
+              onClick={() => handlePageChange(page - 1)}
+              disabled={page === 0}
             >
-              Dodaj ogłoszenie <ArrowRight size={15} />
-            </Link>
-            <Link href="/properties" style={{
-              padding:'13px 24px', borderRadius:12,
-              background:'rgba(255,255,255,0.12)',
-              border:'1px solid rgba(255,255,255,0.2)',
-              color:'#fff', textDecoration:'none',
-              fontSize:14, fontWeight:600,
-              backdropFilter:'blur(8px)',
-              transition:'background 0.2s',
-            }}
-              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.12)'}
-            >
-              Przeglądaj oferty
-            </Link>
-          </div>
-        </div>
-      </section>
+              <ChevronLeft size={16} />
+            </button>
 
+            {Array.from({ length: Math.min(totalPages, 7) }).map((_, i) => {
+              let pageNum = i;
+              if (totalPages > 7) {
+                if (page < 4) pageNum = i;
+                else if (page > totalPages - 5) pageNum = totalPages - 7 + i;
+                else pageNum = page - 3 + i;
+              }
+              return (
+                <button
+                  key={pageNum}
+                  className={`page-btn ${pageNum === page ? 'active' : ''}`}
+                  onClick={() => handlePageChange(pageNum)}
+                >
+                  {pageNum + 1}
+                </button>
+              );
+            })}
+
+            <button
+              className="page-btn"
+              onClick={() => handlePageChange(page + 1)}
+              disabled={page === totalPages - 1}
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
