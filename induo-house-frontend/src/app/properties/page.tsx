@@ -138,6 +138,20 @@ function PropertiesPageInner() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-base)', color: 'var(--text-primary)' }}>
+      <style>{`
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(22px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50%       { opacity: 0.4; }
+        }
+        .card-fadein {
+          animation: fadeUp 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+      `}</style>
+
       <div style={{ maxWidth: 1280, margin: '0 auto', padding: '100px 24px 60px', boxSizing: 'border-box' }}>
 
         <div style={{ marginBottom: 40 }}>
@@ -270,7 +284,15 @@ function PropertiesPageInner() {
           ) : (
             <>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(260px,1fr))', gap: 20 }}>
-                {properties.map(p => <PropertyCard key={p.id} property={p} />)}
+                {properties.map((p, i) => (
+                  <div
+                    key={p.id}
+                    className="card-fadein"
+                    style={{ animationDelay: `${Math.min(i * 0.06, 0.4)}s` }}
+                  >
+                    <PropertyCard property={p} />
+                  </div>
+                ))}
               </div>
               {totalPages > 1 && (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 52 }}>

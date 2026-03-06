@@ -6,6 +6,7 @@ import com.induohouse.induo_house.dto.response.PropertyListResponse;
 import com.induohouse.induo_house.dto.response.PropertyResponse;
 import com.induohouse.induo_house.entity.Property;
 import com.induohouse.induo_house.entity.User;
+import com.induohouse.induo_house.exception.PropertyAccessDeniedException;
 import com.induohouse.induo_house.mapper.PropertyMapper;
 import com.induohouse.induo_house.repository.PropertyImageRepository;
 import com.induohouse.induo_house.repository.PropertyRepository;
@@ -44,7 +45,6 @@ class PropertyServiceTest {
     private Property testProperty;
     private User testUser;
     private PropertyResponse testResponse;
-
 
     @BeforeEach
     void setUp() {
@@ -91,7 +91,6 @@ class PropertyServiceTest {
         verify(propertyMapper, never()).toResponse(any());
     }
 
-
     @Test
     void delete_ShouldDeleteProperty_WhenUserIsOwner() {
         when(propertyRepository.findById(1L)).thenReturn(Optional.of(testProperty));
@@ -105,10 +104,9 @@ class PropertyServiceTest {
     void delete_ShouldThrowException_WhenUserIsNotOwner() {
         when(propertyRepository.findById(1L)).thenReturn(Optional.of(testProperty));
 
-        RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> propertyService.delete(2L, 1L));
+        assertThrows(PropertyAccessDeniedException.class,
+                () -> propertyService.delete(1L, 2L));
 
-        assertEquals("Nie masz uprawnien do tej operacji", ex.getMessage());
         verify(propertyRepository, never()).delete(any());
     }
 
@@ -174,7 +172,7 @@ class PropertyServiceTest {
         when(propertyRepository.save(testProperty)).thenReturn(saved);
         when(propertyMapper.toResponse(saved)).thenReturn(expectedResponse);
 
-        PropertyResponse result = propertyService.update(request, 1L, 1L);
+        PropertyResponse result = propertyService.updatePatch(request, 1L, 1L);
 
         assertNotNull(result);
         assertEquals("Zaktualizowany tytuł", result.getTitle());
@@ -189,10 +187,9 @@ class PropertyServiceTest {
 
         when(propertyRepository.findById(1L)).thenReturn(Optional.of(testProperty));
 
-        RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> propertyService.update(request, 2L, 1L));
+        assertThrows(PropertyAccessDeniedException.class,
+                () -> propertyService.updatePatch(request, 1L, 2L));
 
-        assertEquals("Nie masz uprawnien do tej operacji", ex.getMessage());
         verify(propertyRepository, never()).save(any());
     }
 

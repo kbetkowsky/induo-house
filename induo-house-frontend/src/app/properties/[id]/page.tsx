@@ -462,6 +462,8 @@ export default function PropertyDetailPage() {
 
             {/* RIGHT sticky sidebar */}
             <div style={{ position: 'sticky', top: 88 }}>
+
+              {/* KAFELEK 1: Cena + info + kontakt */}
               <div className="section-card" style={{ padding: 22 }}>
                 <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
                   <span style={{ padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.06em', background: property.transactionType === 'RENT' ? 'rgba(245,158,11,0.15)' : 'rgba(34,197,94,0.12)', color: property.transactionType === 'RENT' ? '#f59e0b' : '#4ade80' }}>
@@ -471,6 +473,7 @@ export default function PropertyDetailPage() {
                     {TYPE_MAP[property.propertyType]}
                   </span>
                 </div>
+
                 <h1 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.3, margin: '0 0 8px' }}>
                   {property.title}
                 </h1>
@@ -478,6 +481,8 @@ export default function PropertyDetailPage() {
                   <MapPin size={13} style={{ flexShrink: 0 }} />
                   {property.city}{property.street ? `, ${property.street}` : ''}{property.postalCode ? ` ${property.postalCode}` : ''}
                 </div>
+
+                {/* Cena */}
                 <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 14, padding: '14px 18px', marginBottom: 16 }}>
                   <div style={{ fontSize: 30, fontWeight: 900, color: 'var(--accent-bright)', letterSpacing: '-0.03em', lineHeight: 1 }}>
                     {formatPrice(property.price)}
@@ -489,6 +494,8 @@ export default function PropertyDetailPage() {
                     </div>
                   )}
                 </div>
+
+                {/* Chips */}
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 20 }}>
                   {[
                     property.area          && { icon: <Square size={13} />,    label: `${property.area} m²` },
@@ -500,8 +507,12 @@ export default function PropertyDetailPage() {
                     </div>
                   ))}
                 </div>
-                <div style={{ borderTop: '1px solid var(--border)', paddingTop: 18, marginBottom: 18 }}>
-                  <p style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginBottom: 12 }}>Kontakt z ogłoszeniodawcą</p>
+
+                {/* Kontakt */}
+                <div style={{ borderTop: '1px solid var(--border)', paddingTop: 18 }}>
+                  <p style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginBottom: 12 }}>
+                    Kontakt z ogłoszeniodawcą
+                  </p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
                     <div style={{ width: 38, height: 38, borderRadius: 11, background: 'linear-gradient(135deg,#3b82f6,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, color: '#fff', flexShrink: 0 }}>
                       {(property.owner.firstName?.[0] ?? property.owner.email[0]).toUpperCase()}
@@ -526,29 +537,36 @@ export default function PropertyDetailPage() {
                     )}
                   </div>
                 </div>
-                <button onClick={toggleFav} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '11px', borderRadius: 12, border: `1px solid ${fav ? 'rgba(248,113,113,0.3)' : 'var(--border)'}`, background: fav ? 'rgba(239,68,68,0.08)' : 'var(--bg-card)', color: fav ? '#f87171' : 'var(--text-muted)', fontSize: 13, fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', fontFamily: 'inherit' }}>
-                  <Heart size={14} fill={fav ? '#f87171' : 'none'} />
-                  {fav ? 'Usuń z ulubionych' : 'Dodaj do ulubionych'}
-                </button>
               </div>
 
-              <div className="section-card" style={{ padding: 20 }}>
-                <p style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginBottom: 14 }}>Wyślij wiadomość</p>
+              {/* KAFELEK 2: Formularz */}
+              <div className="section-card" style={{ padding: 22 }}>
+                <p style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginBottom: 14 }}>
+                  Wyślij wiadomość
+                </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <div>
-                    <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 5 }}>Imię i nazwisko</label>
+                    <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 5 }}>
+                      Imię i nazwisko
+                    </label>
                     <input className="contact-input" type="text" defaultValue={user ? `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() : ''} />
                   </div>
                   <div>
-                    <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 5 }}>E-mail</label>
+                    <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 5 }}>
+                      E-mail
+                    </label>
                     <input className="contact-input" type="email" defaultValue={user?.email ?? ''} />
                   </div>
                   <div>
-                    <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 5 }}>Telefon <span style={{ opacity: 0.5 }}>(opcjonalny)</span></label>
+                    <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 5 }}>
+                      Telefon <span style={{ opacity: 0.5 }}>(opcjonalny)</span>
+                    </label>
                     <input className="contact-input" type="tel" />
                   </div>
                   <div>
-                    <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 5 }}>Wiadomość</label>
+                    <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 5 }}>
+                      Wiadomość
+                    </label>
                     <textarea className="contact-input" rows={3} defaultValue={`Dzień dobry,\n\njestem zainteresowany/a ogłoszeniem "${property.title}". Proszę o kontakt.`} />
                   </div>
                   <button className="send-btn">
@@ -556,6 +574,7 @@ export default function PropertyDetailPage() {
                   </button>
                 </div>
               </div>
+
             </div>
           </div>
 
