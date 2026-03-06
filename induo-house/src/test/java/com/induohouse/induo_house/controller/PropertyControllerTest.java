@@ -10,6 +10,7 @@ import com.induohouse.induo_house.security.JwtService;
 import com.induohouse.induo_house.service.FileStorageService;
 import com.induohouse.induo_house.service.PropertyService;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -111,7 +112,11 @@ class PropertyControllerTest {
         PageImpl<PropertyListResponse> page =
                 new PageImpl<>(List.of(item), PageRequest.of(0, 20), 1);
 
-        when(propertyService.getAll(any())).thenReturn(page);
+        when(propertyService.search(
+                any(), any(), any(),
+                any(), any(), any(), any(),
+                any(), any(Pageable.class)
+        )).thenReturn(page);
 
         mockMvc().perform(get("/api/properties"))
                 .andDo(print())
@@ -119,6 +124,7 @@ class PropertyControllerTest {
                 .andExpect(jsonPath("$.content[0].title", is("Mieszkanie na wynajem")))
                 .andExpect(jsonPath("$.totalElements", is(1)));
     }
+
 
     @Test
     void createProperty_ShouldReturn201_WhenUserAuthenticated() throws Exception {
