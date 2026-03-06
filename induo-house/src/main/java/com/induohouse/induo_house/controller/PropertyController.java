@@ -42,22 +42,23 @@ public class PropertyController {
         this.fileStorageService = fileStorageService;
     }
 
-    @Operation(summary = "Wyszukaj nieruchomości", description = "Filtruje po mieście i typie")
-    @GetMapping("/search")
-    public ResponseEntity<Page<PropertyListResponse>> search(
+    @Operation(summary = "Pobierz/filtruj nieruchomości")
+    @GetMapping
+    public ResponseEntity<PageResponse<PropertyListResponse>> getAll(
             @RequestParam(required = false) String city,
             @RequestParam(required = false) String propertyType,
-            Pageable pageable
+            @RequestParam(required = false) String transactionType,
+            @RequestParam(required = false) BigDecimal minPrice,
+            @RequestParam(required = false) BigDecimal maxPrice,
+            @RequestParam(required = false) BigDecimal minArea,
+            @RequestParam(required = false) BigDecimal maxArea,
+            @RequestParam(required = false) Integer bedrooms,
+            @PageableDefault(size = 12, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
-        return ResponseEntity.ok(propertyService.search(city, propertyType, pageable));
-    }
-
-    @Operation(summary = "Pobierz wszystkie nieruchomości", description = "Zwraca paginowaną listę nieruchomości")
-    @GetMapping
-    public ResponseEntity<PageResponse<PropertyListResponse>> getAll(Pageable pageable) {
-        log.info("Get all properties - page: {}, size: {}", pageable.getPageNumber(), pageable.getPageSize());
-        Page<PropertyListResponse> propertiesPage = propertyService.getAll(pageable);
-        return ResponseEntity.ok(PageResponse.of(propertiesPage));
+        Page<PropertyListResponse> page = propertyService.search(
+                city, propertyType, transactionType,
+                minPrice, maxPrice, minArea, maxArea, bedrooms, pageable);
+        return ResponseEntity.ok(PageResponse.of(page));
     }
 
     @GetMapping("/{id}")

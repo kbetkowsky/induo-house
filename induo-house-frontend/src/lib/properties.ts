@@ -8,6 +8,7 @@ export interface PropertyFilters {
   propertyType?: string;
   minPrice?: number;
   maxPrice?: number;
+  transactionType?: string;
   minArea?: number;
   maxArea?: number;
   bedrooms?: number;
@@ -25,6 +26,7 @@ export async function getProperties(
   if (filters.minPrice !== undefined) params.append('minPrice', filters.minPrice.toString());
   if (filters.maxPrice !== undefined) params.append('maxPrice', filters.maxPrice.toString());
   if (filters.minArea !== undefined) params.append('minArea', filters.minArea.toString());
+  if (filters.transactionType) params.append('transactionType', filters.transactionType);
   if (filters.maxArea !== undefined) params.append('maxArea', filters.maxArea.toString());
   if (filters.bedrooms !== undefined) params.append('bedrooms', filters.bedrooms.toString());
 

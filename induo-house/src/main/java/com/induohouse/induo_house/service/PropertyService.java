@@ -31,13 +31,18 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 public class PropertyService {
+
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
     private final PropertyMapper propertyMapper;
     private final PropertyImageRepository propertyImageRepository;
     private final FileStorageService fileStorageService;
 
-    public PropertyService(PropertyRepository propertyRepository, UserRepository userRepository, PropertyMapper propertyMapper, PropertyImageRepository propertyImageRepository, FileStorageService fileStorageService) {
+    public PropertyService(PropertyRepository propertyRepository,
+                           UserRepository userRepository,
+                           PropertyMapper propertyMapper,
+                           PropertyImageRepository propertyImageRepository,
+                           FileStorageService fileStorageService) {
         this.propertyRepository = propertyRepository;
         this.userRepository = userRepository;
         this.propertyMapper = propertyMapper;
@@ -50,8 +55,7 @@ public class PropertyService {
         Page<Property> page = propertyRepository.findAllPaged(pageable);
 
         List<Long> ids = page.getContent().stream()
-                .map(Property::getId)
-                .toList();
+                .map(Property::getId).toList();
 
         List<Property> fullProperties = propertyRepository.findAllWithImagesByIds(ids);
 
@@ -72,6 +76,62 @@ public class PropertyService {
         return propertyMapper.toResponse(property);
     }
 
+    private Pageable toNativePageable(Pageable pageable) {
+        Sort convertedSort = Sort.by(
+                pageable.getSort().stream()
+                        .map(order -> {
+                            String snakeCase = order.getProperty()
+                                    .replaceAll("([A-Z])", "_$1")
+                                    .toLowerCase();
+                            return order.isAscending()
+                                    ? Sort.Order.asc(snakeCase)
+                                    : Sort.Order.desc(snakeCase);
+                        })
+                        .toList()
+        );
+        return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), convertedSort);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<PropertyListResponse> search(
+            String city,
+            String propertyType,
+            String transactionType,
+            BigDecimal minPrice,
+            BigDecimal maxPrice,
+            BigDecimal minArea,
+            BigDecimal maxArea,
+            Integer bedrooms,
+            Pageable pageable) {
+
+        String cityParam = (city != null && !city.isBlank())                       ? city            : null;
+        String typeParam = (propertyType != null && !propertyType.isBlank())       ? propertyType    : null;
+        String txParam   = (transactionType != null && !transactionType.isBlank()) ? transactionType : null;
+
+        Pageable nativePageable = toNativePageable(pageable);
+
+        Page<Property> page = propertyRepository.findWithFilters(
+                cityParam, typeParam, txParam,
+                minPrice, maxPrice, minArea, maxArea, bedrooms,
+                nativePageable);
+
+        if (page.isEmpty()) {
+            return new PageImpl<>(List.of(), pageable, 0);
+        }
+
+        List<Long> ids = page.getContent().stream().map(Property::getId).toList();
+        List<Property> fullProperties = propertyRepository.findAllWithImagesByIds(ids);
+        Map<Long, Property> propertyMap = fullProperties.stream()
+                .collect(Collectors.toMap(Property::getId, p -> p));
+
+        List<PropertyListResponse> responses = page.getContent().stream()
+                .map(p -> propertyMapper.toListResponse(
+                        propertyMap.getOrDefault(p.getId(), p)))
+                .toList();
+
+        return new PageImpl<>(responses, pageable, page.getTotalElements());
+    }
+
     public Page<PropertyListResponse> getByCity(String city, Pageable pageable) {
         return propertyRepository.findByCity(city, pageable)
                 .map(propertyMapper::toListResponse);
@@ -87,17 +147,9 @@ public class PropertyService {
                 .map(propertyMapper::toListResponse);
     }
 
-    @Transactional
-    public void delete(Long userId, Long propertyId) {
-        Property property = propertyRepository.findById(propertyId)
-                .orElseThrow(() -> new PropertyNotFoundException(propertyId));
-
-        if (!property.getUser().getId().equals(userId)) {
-            throw new PropertyAccessDeniedException();
-        }
-
-        propertyRepository.delete(property);
-        log.info("Property {} deleted by user {}", propertyId, userId);
+    public Page<PropertyListResponse> getByPriceRange(BigDecimal minPrice, BigDecimal maxPrice, Pageable pageable) {
+        return propertyRepository.findByPriceBetween(minPrice, maxPrice, pageable)
+                .map(propertyMapper::toListResponse);
     }
 
     @Transactional
@@ -112,7 +164,7 @@ public class PropertyService {
     }
 
     @Transactional
-    public PropertyResponse updatePatch(UpdatePropertyRequest request, Long userId, Long propertyId) {
+    public void delete(Long propertyId, Long userId) {
         Property property = propertyRepository.findById(propertyId)
                 .orElseThrow(() -> new PropertyNotFoundException(propertyId));
 
@@ -120,52 +172,39 @@ public class PropertyService {
             throw new PropertyAccessDeniedException();
         }
 
-        if (request.getTitle() != null) property.setTitle(request.getTitle());
-        if (request.getDescription() != null) property.setDescription(request.getDescription());
-        if (request.getPrice() != null) property.setPrice(request.getPrice());
-        if (request.getArea() != null) property.setArea(request.getArea());
-        if (request.getCity() != null) property.setCity(request.getCity());
-        if (request.getStreet() != null) property.setStreet(request.getStreet());
-        if (request.getPostalCode() != null) property.setPostalCode(request.getPostalCode());
-        if (request.getNumberOfRooms() != null) property.setNumberOfRooms(request.getNumberOfRooms());
-        if (request.getFloor() != null) property.setFloor(request.getFloor());
-        if (request.getTotalFloors() != null) property.setTotalFloors(request.getTotalFloors());
+        propertyRepository.delete(property);
+        log.info("Property {} deleted by user {}", propertyId, userId);
+    }
+
+    @Transactional
+    public PropertyResponse updatePatch(UpdatePropertyRequest request, Long propertyId, Long userId) {
+        Property property = propertyRepository.findById(propertyId)
+                .orElseThrow(() -> new PropertyNotFoundException(propertyId));
+
+        if (!property.getUser().getId().equals(userId)) {
+            throw new PropertyAccessDeniedException();
+        }
+
+        if (request.getTitle() != null)           property.setTitle(request.getTitle());
+        if (request.getDescription() != null)     property.setDescription(request.getDescription());
+        if (request.getPrice() != null)           property.setPrice(request.getPrice());
+        if (request.getArea() != null)            property.setArea(request.getArea());
+        if (request.getCity() != null)            property.setCity(request.getCity());
+        if (request.getStreet() != null)          property.setStreet(request.getStreet());
+        if (request.getPostalCode() != null)      property.setPostalCode(request.getPostalCode());
+        if (request.getNumberOfRooms() != null)   property.setNumberOfRooms(request.getNumberOfRooms());
+        if (request.getFloor() != null)           property.setFloor(request.getFloor());
+        if (request.getTotalFloors() != null)     property.setTotalFloors(request.getTotalFloors());
         if (request.getTransactionType() != null) property.setTransactionType(request.getTransactionType());
-        if (request.getPropertyType() != null) property.setPropertyType(request.getPropertyType());
+        if (request.getPropertyType() != null)    property.setPropertyType(request.getPropertyType());
 
         Property saved = propertyRepository.save(property);
         return propertyMapper.toResponse(saved);
     }
 
     @Transactional
-    public PropertyResponse update(UpdatePropertyRequest request, Long userId, Long propertyId) {
-        Property property = propertyRepository.findById(propertyId)
-                .orElseThrow(() -> new PropertyNotFoundException(propertyId));
-
-        if (!property.getUser().getId().equals(userId)) {
-            throw new PropertyAccessDeniedException();
-        }
-
-        property.setTitle(request.getTitle());
-        property.setDescription(request.getDescription());
-        property.setPrice(request.getPrice());
-        property.setCity(request.getCity());
-        property.setArea(request.getArea());
-        property.setPropertyType(request.getPropertyType());
-        property.setNumberOfRooms(request.getNumberOfRooms());
-        property.setFloor(request.getFloor());
-
-        Property saved = propertyRepository.save(property);
-        return propertyMapper.toResponse(saved);
-    }
-
-    public Page<PropertyListResponse> getByPriceRange(BigDecimal minPrice, BigDecimal maxPrice, Pageable pageable) {
-        return propertyRepository.findByPriceBetween(minPrice, maxPrice, pageable)
-                .map(propertyMapper::toListResponse);
-    }
-
-    @Transactional
-    public PropertyImageResponse addImage(Long propertyId, MultipartFile file, boolean isPrimary, Long userId) throws IOException {
+    public PropertyImageResponse addImage(Long propertyId, MultipartFile file,
+                                          boolean isPrimary, Long userId) throws IOException {
         Property property = propertyRepository.findById(propertyId)
                 .orElseThrow(() -> new PropertyNotFoundException(propertyId));
 
@@ -175,11 +214,12 @@ public class PropertyService {
 
         String contentType = file.getContentType();
         if (contentType == null || !contentType.startsWith("image/")) {
-            throw new IllegalArgumentException("Dozwolone sa tylko pliki graficzne (jpg, png, webp)");
+            throw new IllegalArgumentException("Dozwolone są tylko pliki graficzne (jpg, png, webp)");
         }
         if (file.getSize() > 5 * 1024 * 1024) {
-            throw new IllegalArgumentException("Plik nie moze byc wiekszy niz 5MB");
+            throw new IllegalArgumentException("Plik nie może być większy niż 5MB");
         }
+
         if (isPrimary || property.getImages().isEmpty()) {
             propertyImageRepository.clearPrimaryForProperty(propertyId);
         }
@@ -202,39 +242,6 @@ public class PropertyService {
         response.setPrimary(saved.isPrimary());
         response.setSortOrder(saved.getSortOrder());
         return response;
-    }
-
-    @Transactional(readOnly = true)
-    public Page<PropertyListResponse> search(String city, String propertyType, Pageable pageable) {
-        Page<Property> page;
-
-        if (city != null && !city.isBlank() && propertyType != null && !propertyType.isBlank()) {
-            page = propertyRepository.findByCityAndPropertyType(city, propertyType, pageable);
-        } else if (city != null && !city.isBlank()) {
-            page = propertyRepository.findByCity(city, pageable);
-        } else if (propertyType != null && !propertyType.isBlank()) {
-            page = propertyRepository.findByPropertyType(propertyType, pageable);
-        } else {
-            page = propertyRepository.findAllPaged(pageable);
-        }
-
-        List<Long> ids = page.getContent().stream()
-                .map(Property::getId)
-                .toList();
-
-        if (ids.isEmpty()) {
-            return new PageImpl<>(List.of(), pageable, 0);
-        }
-
-        List<Property> fullProperties = propertyRepository.findAllWithImagesByIds(ids);
-        Map<Long, Property> propertyMap = fullProperties.stream()
-                .collect(Collectors.toMap(Property::getId, p -> p));
-
-        List<PropertyListResponse> responses = page.getContent().stream()
-                .map(p -> propertyMapper.toListResponse(propertyMap.get(p.getId())))
-                .toList();
-
-        return new PageImpl<>(responses, pageable, page.getTotalElements());
     }
 
     @Transactional

@@ -18,6 +18,12 @@ const PROPERTY_TYPES = [
   { value: 'COMMERCIAL', label: 'Komercyjne' },
 ];
 
+const TRANSACTION_TYPES = [
+  { value: '', label: 'Sprzedaż i wynajem' },
+  { value: 'SALE', label: 'Sprzedaż' },
+  { value: 'RENT', label: 'Wynajem' },
+];
+
 function useDebounce<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState(value);
   useEffect(() => {
@@ -31,14 +37,15 @@ function PropertiesPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [city, setCity]                 = useState(searchParams.get('city') ?? '');
-  const [propertyType, setPropertyType] = useState(searchParams.get('propertyType') ?? '');
-  const [minPrice, setMinPrice]         = useState(searchParams.get('minPrice') ?? '');
-  const [maxPrice, setMaxPrice]         = useState(searchParams.get('maxPrice') ?? '');
-  const [minArea, setMinArea]           = useState(searchParams.get('minArea') ?? '');
-  const [maxArea, setMaxArea]           = useState(searchParams.get('maxArea') ?? '');
-  const [bedrooms, setBedrooms]         = useState(searchParams.get('bedrooms') ?? '');
-  const [filtersOpen, setFiltersOpen]   = useState(false);
+  const [city, setCity]                       = useState(searchParams.get('city') ?? '');
+  const [propertyType, setPropertyType]       = useState(searchParams.get('propertyType') ?? '');
+  const [transactionType, setTransactionType] = useState(searchParams.get('transactionType') ?? '');
+  const [minPrice, setMinPrice]               = useState(searchParams.get('minPrice') ?? '');
+  const [maxPrice, setMaxPrice]               = useState(searchParams.get('maxPrice') ?? '');
+  const [minArea, setMinArea]                 = useState(searchParams.get('minArea') ?? '');
+  const [maxArea, setMaxArea]                 = useState(searchParams.get('maxArea') ?? '');
+  const [bedrooms, setBedrooms]               = useState(searchParams.get('bedrooms') ?? '');
+  const [filtersOpen, setFiltersOpen]         = useState(false);
 
   const [properties, setProperties]       = useState<PropertyListResponse[]>([]);
   const [isLoading, setIsLoading]         = useState(true);
@@ -56,17 +63,18 @@ function PropertiesPageInner() {
   const debouncedMaxArea  = useDebounce(maxArea, 500);
 
   const buildFilters = useCallback((): PropertyFilters => ({
-    city:         debouncedCity || undefined,
-    propertyType: propertyType || undefined,
-    minPrice:     debouncedMinPrice ? Number(debouncedMinPrice) : undefined,
-    maxPrice:     debouncedMaxPrice ? Number(debouncedMaxPrice) : undefined,
-    minArea:      debouncedMinArea  ? Number(debouncedMinArea)  : undefined,
-    maxArea:      debouncedMaxArea  ? Number(debouncedMaxArea)  : undefined,
-    bedrooms:     bedrooms          ? Number(bedrooms)          : undefined,
-    page:         currentPage,
-    size:         12,
+    city:            debouncedCity || undefined,
+    propertyType:    propertyType || undefined,
+    transactionType: transactionType || undefined,
+    minPrice:        debouncedMinPrice ? Number(debouncedMinPrice) : undefined,
+    maxPrice:        debouncedMaxPrice ? Number(debouncedMaxPrice) : undefined,
+    minArea:         debouncedMinArea  ? Number(debouncedMinArea)  : undefined,
+    maxArea:         debouncedMaxArea  ? Number(debouncedMaxArea)  : undefined,
+    bedrooms:        bedrooms          ? Number(bedrooms)          : undefined,
+    page:            currentPage,
+    size:            12,
   }), [
-    debouncedCity, propertyType, debouncedMinPrice, debouncedMaxPrice,
+    debouncedCity, propertyType, transactionType, debouncedMinPrice, debouncedMaxPrice,
     debouncedMinArea, debouncedMaxArea, bedrooms, currentPage
   ]);
 
@@ -87,20 +95,21 @@ function PropertiesPageInner() {
 
   useEffect(() => {
     const params = new URLSearchParams();
-    if (city)         params.set('city', city);
-    if (propertyType) params.set('propertyType', propertyType);
-    if (minPrice)     params.set('minPrice', minPrice);
-    if (maxPrice)     params.set('maxPrice', maxPrice);
-    if (minArea)      params.set('minArea', minArea);
-    if (maxArea)      params.set('maxArea', maxArea);
-    if (bedrooms)     params.set('bedrooms', bedrooms);
-    if (currentPage)  params.set('page', String(currentPage));
+    if (city)            params.set('city', city);
+    if (propertyType)    params.set('propertyType', propertyType);
+    if (transactionType) params.set('transactionType', transactionType);
+    if (minPrice)        params.set('minPrice', minPrice);
+    if (maxPrice)        params.set('maxPrice', maxPrice);
+    if (minArea)         params.set('minArea', minArea);
+    if (maxArea)         params.set('maxArea', maxArea);
+    if (bedrooms)        params.set('bedrooms', bedrooms);
+    if (currentPage)     params.set('page', String(currentPage));
     router.replace(`/properties?${params.toString()}`, { scroll: false });
-  }, [city, propertyType, minPrice, maxPrice, minArea, maxArea, bedrooms, currentPage]);
+  }, [city, propertyType, transactionType, minPrice, maxPrice, minArea, maxArea, bedrooms, currentPage]);
 
   useEffect(() => {
     setCurrentPage(0);
-  }, [debouncedCity, propertyType, debouncedMinPrice, debouncedMaxPrice,
+  }, [debouncedCity, propertyType, transactionType, debouncedMinPrice, debouncedMaxPrice,
       debouncedMinArea, debouncedMaxArea, bedrooms]);
 
   useEffect(() => {
@@ -115,6 +124,7 @@ function PropertiesPageInner() {
   function clearFilters() {
     setCity('');
     setPropertyType('');
+    setTransactionType('');
     setMinPrice('');
     setMaxPrice('');
     setMinArea('');
@@ -123,7 +133,7 @@ function PropertiesPageInner() {
     setCurrentPage(0);
   }
 
-  const hasActiveFilters = city || propertyType || minPrice || maxPrice
+  const hasActiveFilters = city || propertyType || transactionType || minPrice || maxPrice
                          || minArea || maxArea || bedrooms;
 
   return (
@@ -144,6 +154,7 @@ function PropertiesPageInner() {
           )}
         </div>
 
+        {/* GŁÓWNY PASEK FILTRÓW */}
         <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: 220, position: 'relative' }}>
             <Search size={15} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
@@ -156,7 +167,11 @@ function PropertiesPageInner() {
             />
           </div>
 
-          <select value={propertyType} onChange={e => setPropertyType(e.target.value)} style={inputStyle()}>
+          <select value={transactionType} onChange={e => setTransactionType(e.target.value)} style={inputStyle({ width: 'auto', minWidth: 160 })}>
+            {TRANSACTION_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+          </select>
+
+          <select value={propertyType} onChange={e => setPropertyType(e.target.value)} style={inputStyle({ width: 'auto', minWidth: 150 })}>
             {PROPERTY_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
 
@@ -192,6 +207,7 @@ function PropertiesPageInner() {
           )}
         </div>
 
+        {/* ZAAWANSOWANE FILTRY */}
         {filtersOpen && (
           <div style={{
             display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
