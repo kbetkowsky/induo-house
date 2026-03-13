@@ -1,4 +1,4 @@
-[English](#induo-house) · [Polski](#induo-house-1)
+[English](#induo-house) · [Polski](#induo-house-pl)
 
 ---
 
