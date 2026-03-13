@@ -46,6 +46,15 @@ jobs:
             ./induo-house-frontend
           docker push $ECR_REGISTRY/induo-frontend:latest
 
+      - name: Copy docker-compose to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "docker-compose.yml"
+          target: "~/induo-house/"
+
       - name: Deploy on EC2 via SSH
         uses: appleboy/ssh-action@v1
         with:
@@ -53,8 +62,12 @@ jobs:
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            cd ~/induo-house
             aws ecr get-login-password --region eu-central-1 | \
               docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
+            export ECR_REGISTRY=${{ secrets.ECR_REGISTRY }}
+            export DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+            export JWT_SECRET=${{ secrets.JWT_SECRET }}
             docker compose pull
             docker compose up -d --remove-orphans
             docker image prune -f
