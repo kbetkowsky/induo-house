@@ -1,0 +1,60 @@
+name: Deploy to AWS EC2
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    name: Build, Push & Deploy
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-central-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build & push backend
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build \
+            -t $ECR_REGISTRY/induo-backend:$IMAGE_TAG \
+            -t $ECR_REGISTRY/induo-backend:latest .
+          docker push $ECR_REGISTRY/induo-backend:latest
+
+      - name: Build & push frontend
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build \
+            --build-arg NEXT_PUBLIC_API_URL=${{ secrets.BACKEND_URL }} \
+            -t $ECR_REGISTRY/induo-frontend:$IMAGE_TAG \
+            -t $ECR_REGISTRY/induo-frontend:latest \
+            ./induo-house-frontend
+          docker push $ECR_REGISTRY/induo-frontend:latest
+
+      - name: Deploy on EC2 via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            aws ecr get-login-password --region eu-central-1 | \
+              docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
+            docker compose pull
+            docker compose up -d --remove-orphans
+            docker image prune -f

@@ -1,61 +1,41 @@
+[English](#induo-house) · [Polski](#induo-house-pl)
+
+---
+
 # Induo House
 
 [![CI](https://github.com/kbetkowsky/induo-house/actions/workflows/ci.yml/badge.svg)](https://github.com/kbetkowsky/induo-house/actions/workflows/ci.yml)
-![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Full-stack aplikacja do zarządzania ogłoszeniami nieruchomości — sprzedaż i wynajem.
-Użytkownicy mogą zakładać konta, publikować ogłoszenia ze zdjęciami oraz przeglądać
-i filtrować oferty innych.
+Full-stack real estate listing platform. Users can register, post property listings with photos, and browse or filter offers by city, type, and price range.
 
-## Tech stack
+The backend is built with Java 21 and Spring Boot, backed by PostgreSQL with Flyway handling schema migrations. Authentication uses JWT tokens stored in httpOnly cookies. The frontend is a Next.js 16 app in TypeScript using TanStack Query for server state, React Hook Form with Zod for validation, and Leaflet for an interactive map.
 
-### Backend
-| Warstwa | Technologia |
-|---|---|
-| Język / Framework | Java 21, Spring Boot 4 |
-| Baza danych | PostgreSQL, Spring Data JPA, Hibernate |
-| Migracje | Flyway |
-| Bezpieczeństwo | Spring Security, JWT |
-| Testy | JUnit 5, Mockito, Testcontainers |
-| Build | Maven |
+On every push to `main`, GitHub Actions runs 49 tests (unit + integration via Testcontainers), then builds Docker images, pushes them to Amazon ECR, and restarts the containers on EC2 over SSH.
 
-### Frontend
-| Warstwa | Technologia |
-|---|---|
-| Framework | Next.js 16, React 19, TypeScript |
-| Stylowanie | Tailwind CSS v4 |
-| Formularze | React Hook Form + Zod |
-| Dane | TanStack React Query, Axios |
-| Mapa | Leaflet / React Leaflet |
+## Stack
 
-## Struktura projektu
+**Backend** — Java 21, Spring Boot, PostgreSQL, Spring Data JPA, Flyway, Spring Security, JWT, Testcontainers, Maven
 
-```
-induo-house/             # Spring Boot backend
-induo-house-frontend/    # Next.js frontend
-```
+**Frontend** — Next.js 16, React 19, TypeScript, Tailwind CSS v4, TanStack Query, React Hook Form, Zod, Leaflet
 
-## Pierwsze uruchomienie
+**Infrastructure** — Docker, Docker Compose, GitHub Actions, AWS EC2, Amazon ECR
 
-**Wymagania:** Java 21+, Node.js 18+, Docker
+## Getting started
 
-### Backend
+Requirements: Java 21+, Node.js 18+, Docker
+
+**Backend**
 
 ```bash
-# 1. Uruchom bazę danych
-cd induo-house
-docker-compose up -d
-
-# 2. Skopiuj plik ze zmiennymi środowiskowymi i uzupełnij wartości
 cp .env.example .env
-
-# 3. Uruchom aplikację
+cd induo-house
 ./mvnw spring-boot:run
 ```
 
-API docs (Swagger): `http://localhost:8080/swagger-ui/index.html`
+Swagger UI available at `http://localhost:8080/swagger-ui/index.html`
 
-### Frontend
+**Frontend**
 
 ```bash
 cd induo-house-frontend
@@ -63,73 +43,73 @@ npm install
 npm run dev
 ```
 
-App: `http://localhost:3000`
+App runs at `http://localhost:3000`
 
-## Zmienne środowiskowe
+## Environment variables
 
-Skopiuj `.env.example` do `.env` i uzupełnij wartości:
+Copy `.env.example` to `.env`:
 
-```env
-DB_PASSWORD=twoje_haslo_do_bazy
-JWT_SECRET=twoj_losowy_sekret_min_32_znaki
+```
+DB_PASSWORD=your_database_password
+JWT_SECRET=your_random_secret_min_32_chars
 ```
 
-> ⚠️ Nigdy nie commituj pliku `.env` — jest dodany do `.gitignore`
+Never commit `.env` — it is in `.gitignore`.
 
 ## API
 
 <details>
-<summary><strong>Auth</strong> — /api/auth</summary>
+<summary>Auth — /api/auth</summary>
 
-| Metoda | Endpoint | Opis |
-|--------|----------|------|
-| `POST` | `/api/auth/register` | Rejestracja |
-| `POST` | `/api/auth/login` | Logowanie |
-| `POST` | `/api/auth/logout` | Wylogowanie |
-| `GET` | `/api/auth/me` | Dane zalogowanego użytkownika |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | /api/auth/register | Register |
+| POST | /api/auth/login | Login |
+| POST | /api/auth/logout | Logout |
+| GET  | /api/auth/me | Current user |
 
 </details>
 
 <details>
-<summary><strong>Ogłoszenia</strong> — /api/properties</summary>
+<summary>Properties — /api/properties</summary>
 
-**Publiczne**
+Public endpoints
 
-| Metoda | Endpoint | Opis |
-|--------|----------|------|
-| `GET` | `/api/properties` | Lista z paginacją |
-| `GET` | `/api/properties/{id}` | Szczegóły ogłoszenia |
-| `GET` | `/api/properties/search?city=&propertyType=` | Wyszukiwanie |
-| `GET` | `/api/properties/city/{city}` | Filtr po mieście |
-| `GET` | `/api/properties/type/{type}` | Filtr po typie |
-| `GET` | `/api/properties/price-range?minPrice=&maxPrice=` | Filtr cenowy |
-| `GET` | `/api/properties/user/{userId}` | Ogłoszenia użytkownika |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /api/properties | Paginated list |
+| GET | /api/properties/{id} | Property details |
+| GET | /api/properties/search?city=&propertyType= | Search |
+| GET | /api/properties/city/{city} | Filter by city |
+| GET | /api/properties/type/{type} | Filter by type |
+| GET | /api/properties/price-range?minPrice=&maxPrice= | Price range |
+| GET | /api/properties/user/{userId} | User listings |
 
-**Wymagają zalogowania**
+Requires authentication
 
-| Metoda | Endpoint | Opis |
-|--------|----------|------|
-| `GET` | `/api/properties/my` | Moje ogłoszenia |
-| `POST` | `/api/properties` | Nowe ogłoszenie |
-| `PATCH` | `/api/properties/{id}` | Edycja ogłoszenia |
-| `DELETE` | `/api/properties/{id}` | Usunięcie ogłoszenia |
-| `POST` | `/api/properties/{id}/images` | Dodaj zdjęcie |
-| `DELETE` | `/api/properties/{propertyId}/images/{imageId}` | Usuń zdjęcie |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET    | /api/properties/my | My listings |
+| POST   | /api/properties | Create listing |
+| PATCH  | /api/properties/{id} | Update listing |
+| DELETE | /api/properties/{id} | Delete listing |
+| POST   | /api/properties/{id}/images | Upload image |
+| DELETE | /api/properties/{propertyId}/images/{imageId} | Delete image |
 
 </details>
 
-## Przykład — nowe ogłoszenie
+## Example
 
 ```http
 POST /api/properties
 Content-Type: application/json
 
 {
-  "title": "Przestronne mieszkanie w centrum",
+  "title": "Spacious apartment in the city centre",
   "price": 650000,
   "area": 72,
-  "city": "Kraków",
-  "street": "Floriańska 5",
+  "city": "Krakow",
+  "street": "Florjanska 5",
   "postalCode": "31-000",
   "numberOfRooms": 3,
   "floor": 2,
@@ -139,34 +119,44 @@ Content-Type: application/json
 }
 ```
 
-> `propertyType`: `APARTMENT` | `HOUSE` | `LAND`  
-> `transactionType`: `SALE` | `RENT`
+`propertyType`: `APARTMENT` | `HOUSE` | `LAND`  
+`transactionType`: `SALE` | `RENT`
 
-## Testy
+## Tests
 
 ```bash
 cd induo-house
 ./mvnw test
 ```
 
-**49 testów** — unit testy (Mockito) + testy integracyjne (`@SpringBootTest`).
+49 tests total. Unit tests use Mockito, integration tests run against a real PostgreSQL instance spun up automatically via Testcontainers — no manual database setup required.
 
-Testy integracyjne używają **Testcontainers** — PostgreSQL odpala się automatycznie
-w Dockerze, zero ręcznej konfiguracji.
-
-| Klasa | Typ | Testy |
+| Class | Type | Count |
 |---|---|---|
-| `AuthControllerTest` | Integracyjny | 7 |
-| `PropertyControllerTest` | Integracyjny | 6 |
-| `PropertyIntegrationTest` | Integracyjny (baza) | 7 |
-| `PropertyServiceTest` | Unit | 9 |
-| `AuthServiceTest` | Unit | 8 |
-| `PropertyMapperTest` | Unit | 11 |
-| `InduoHouseApplicationTests` | Smoke test | 1 |
+| AuthControllerTest | Integration | 7 |
+| PropertyControllerTest | Integration | 6 |
+| PropertyIntegrationTest | Integration (DB) | 7 |
+| PropertyServiceTest | Unit | 9 |
+| AuthServiceTest | Unit | 8 |
+| PropertyMapperTest | Unit | 11 |
+| InduoHouseApplicationTests | Smoke | 1 |
 
-## Bezpieczeństwo
+## Security
 
-- JWT authentication (httpOnly cookie)
-- Hasła hashowane **BCryptem**
-- Zmienne środowiskowe dla sekretów (`DB_PASSWORD`, `JWT_SECRET`)
-- Autoryzacja na poziomie zasobu — tylko właściciel może edytować/usuwać swoje ogłoszenie
+Passwords are hashed with BCrypt. JWT tokens are stored in httpOnly cookies. All secrets are passed via environment variables. Resource-level authorization ensures only the owner can modify or delete their listing.
+
+## License
+
+MIT
+
+---
+
+# Induo House PL
+
+Aplikacja full-stack do zarządzania ogłoszeniami nieruchomości. Użytkownik może zakładać konto, dodawać ogłoszenia ze zdjęciami oraz przeglądać i filtrować oferty innych użytkowników.
+
+Backend: Java 21, Spring Boot, PostgreSQL, Flyway, Spring Security, JWT, Testcontainers
+
+Frontend: Next.js 16, React 19, TypeScript, Tailwind CSS v4, TanStack Query, Leaflet
+
+Pełna dokumentacja dostępna powyżej w wersji angielskiej.
