@@ -11,7 +11,6 @@ export const apiClient = axios.create({
 
 apiClient.interceptors.request.use(
   (config) => {
-    // Możesz tutaj dodać logi do debugowania
     console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`);
     return config;
   },
@@ -27,7 +26,9 @@ apiClient.interceptors.response.use(
       console.log('Unauthorized - redirecting to login');
 
       const currentPath = window.location.pathname;
-      if (currentPath !== '/login' && currentPath !== '/register') {
+      const isAuthCheck = error.config?.url?.includes('/auth/me');
+
+      if (!isAuthCheck && currentPath !== '/login' && currentPath !== '/register') {
         window.location.href = '/login';
       }
     }
