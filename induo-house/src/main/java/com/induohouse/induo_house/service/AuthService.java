@@ -56,7 +56,10 @@ public class AuthService {
         return AuthResponse.builder()
                 .token(jwtToken)
                 .refreshToken(refreshToken)
-                .email(user.getEmail())
+                .id(savedUser.getId())
+                .email(savedUser.getEmail())
+                .firstName(savedUser.getFirstName())
+                .lastName(savedUser.getLastName())
                 .build();
     }
 
@@ -89,7 +92,10 @@ public class AuthService {
         return AuthResponse.builder()
                 .token(jwtToken)
                 .refreshToken(refreshToken)
+                .id(user.getId())
                 .email(user.getEmail())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
                 .build();
     }
 

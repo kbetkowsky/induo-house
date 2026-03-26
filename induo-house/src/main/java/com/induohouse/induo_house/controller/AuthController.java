@@ -116,7 +116,10 @@ public class AuthController {
 
     private UserDto convertToUserDto(AuthResponse authResponse) {
         return UserDto.builder()
+                .id(authResponse.getId())
                 .email(authResponse.getEmail())
+                .firstName(authResponse.getFirstName())
+                .lastName(authResponse.getLastName())
                 .build();
     }
 }
