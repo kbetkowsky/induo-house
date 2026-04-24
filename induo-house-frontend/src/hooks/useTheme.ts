@@ -20,16 +20,18 @@ function applyTheme(theme: Theme) {
 }
 
 export function useTheme() {
-  const [theme, setThemeState] = useState<Theme>('system');
-
-  /* Wczytaj z localStorage przy pierwszym renderze */
-  useEffect(() => {
-    const saved = localStorage.getItem('induo-theme') as Theme | null;
-    if (saved && ['light', 'dark', 'system'].includes(saved)) {
-      setThemeState(saved);
-      applyTheme(saved);
+  const [theme, setThemeState] = useState<Theme>(() => {
+    if (typeof window === 'undefined') {
+      return 'system';
     }
-  }, []);
+
+    const saved = localStorage.getItem('induo-theme');
+    return saved === 'light' || saved === 'dark' || saved === 'system' ? saved : 'system';
+  });
+
+  useEffect(() => {
+    applyTheme(theme);
+  }, [theme]);
 
   /* Nasłuchuj zmiany systemowej gdy theme === 'system' */
   useEffect(() => {

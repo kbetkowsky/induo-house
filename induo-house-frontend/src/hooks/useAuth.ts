@@ -1,11 +1,21 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { login as loginApi, register as registerApi, logout as logoutApi, getCurrentUser } from '@/lib/auth';
-import { LoginCredentials, RegisterCredentials } from '@/types';
-import { QUERY_KEYS } from '@/constants';
+import { AxiosError } from 'axios';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
+import { login as loginApi, register as registerApi, logout as logoutApi, getCurrentUser } from '@/lib/auth';
+import { QUERY_KEYS } from '@/constants';
+import { LoginCredentials, RegisterCredentials } from '@/types';
+
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof AxiosError) {
+    const responseData = error.response?.data as { message?: string; error?: string } | undefined;
+    return responseData?.message ?? responseData?.error ?? fallback;
+  }
+
+  return fallback;
+}
 
 export function useAuth() {
   const router = useRouter();
@@ -23,15 +33,11 @@ export function useAuth() {
     mutationFn: (credentials: LoginCredentials) => loginApi(credentials),
     onSuccess: (userData) => {
       queryClient.setQueryData([QUERY_KEYS.USER], userData);
-
       toast.success(`Witaj ${userData.email}!`);
       router.push('/dashboard');
     },
-    onError: (error: any) => {
-      const message = error.response?.data?.message ||
-                     error.response?.data?.error ||
-                     'Nieprawidłowy email lub hasło';
-      toast.error(message);
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Nieprawidłowy email lub hasło'));
       console.error('Login error:', error);
     },
   });
@@ -40,15 +46,11 @@ export function useAuth() {
     mutationFn: (credentials: RegisterCredentials) => registerApi(credentials),
     onSuccess: (userData) => {
       queryClient.setQueryData([QUERY_KEYS.USER], userData);
-
-      toast.success('Rejestracja pomyślna! Witaj w InduoHouse 🏠');
+      toast.success('Rejestracja pomyślna! Witaj w InduoHouse.');
       router.push('/dashboard');
     },
-    onError: (error: any) => {
-      const message = error.response?.data?.message ||
-                     error.response?.data?.error ||
-                     'Błąd rejestracji. Spróbuj ponownie.';
-      toast.error(message);
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Błąd rejestracji. Spróbuj ponownie.'));
       console.error('Register error:', error);
     },
   });
@@ -57,7 +59,6 @@ export function useAuth() {
     try {
       await logoutApi();
       queryClient.clear();
-
       toast.success('Wylogowano pomyślnie');
       router.push('/');
     } catch (error) {

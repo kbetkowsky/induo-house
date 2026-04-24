@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ComponentType, type CSSProperties, type ReactNode } from 'react';
 
 interface Props {
   city: string;
@@ -8,23 +8,89 @@ interface Props {
   postalCode?: string;
 }
 
+type Coordinates = [number, number];
+
+type MapViewProps = {
+  coords: Coordinates;
+};
+
+type LeafletModule = {
+  Icon: {
+    Default: {
+      prototype: { _getIconUrl?: string };
+      mergeOptions: (options: {
+        iconRetinaUrl: string;
+        iconUrl: string;
+        shadowUrl: string;
+      }) => void;
+    };
+  };
+};
+
+type ReactLeafletModule = {
+  MapContainer: ComponentType<{
+    center: Coordinates;
+    zoom: number;
+    style: CSSProperties;
+    scrollWheelZoom: boolean;
+    children: ReactNode;
+  }>;
+  TileLayer: ComponentType<{
+    url: string;
+    attribution: string;
+  }>;
+  Marker: ComponentType<{
+    position: Coordinates;
+    children: ReactNode;
+  }>;
+  Popup: ComponentType<{
+    children: ReactNode;
+  }>;
+};
+
+type NominatimResponse = Array<{
+  lat: string;
+  lon: string;
+}>;
+
+async function geocodeAddress(address: string): Promise<Coordinates | null> {
+  const response = await fetch(
+    `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`,
+    { headers: { 'Accept-Language': 'pl', 'User-Agent': 'induo-house/1.0' } }
+  );
+  const data = (await response.json()) as NominatimResponse;
+
+  if (!data[0]) {
+    return null;
+  }
+
+  return [Number.parseFloat(data[0].lat), Number.parseFloat(data[0].lon)];
+}
+
 export default function PropertyMap({ city, street, postalCode }: Props) {
-  const [MapComponent, setMapComponent] = useState<React.ComponentType<any> | null>(null);
+  const [MapComponent, setMapComponent] = useState<ComponentType<MapViewProps> | null>(null);
+  const [coords, setCoords] = useState<Coordinates | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
-    import('leaflet').then((L) => {
-      delete (L.Icon.Default.prototype as any)._getIconUrl;
-      L.Icon.Default.mergeOptions({
+    let cancelled = false;
+
+    const loadMap = async () => {
+      const leafletModule = (await import('leaflet')) as unknown as LeafletModule;
+      delete leafletModule.Icon.Default.prototype._getIconUrl;
+      leafletModule.Icon.Default.mergeOptions({
         iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
         iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
         shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
       });
-    });
 
-    import('react-leaflet').then(({ MapContainer, TileLayer, Marker, Popup }) => {
-      const Component = ({ coords }: { coords: [number, number] }) => (
+      const reactLeafletModule = (await import('react-leaflet')) as unknown as ReactLeafletModule;
+      const { MapContainer, TileLayer, Marker, Popup } = reactLeafletModule;
+
+      const Component = ({ coords: nextCoords }: MapViewProps) => (
         <MapContainer
-          center={coords}
+          center={nextCoords}
           zoom={15}
           style={{ height: '100%', width: '100%', borderRadius: 14 }}
           scrollWheelZoom={false}
@@ -33,53 +99,76 @@ export default function PropertyMap({ city, street, postalCode }: Props) {
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             attribution='&copy; <a href="https://openstreetmap.org">OpenStreetMap</a>'
           />
-          <Marker position={coords}>
+          <Marker position={nextCoords}>
             <Popup>{[street, city, postalCode].filter(Boolean).join(', ')}</Popup>
           </Marker>
         </MapContainer>
       );
-      setMapComponent(() => Component);
-    });
-  }, []);
 
-  const [coords, setCoords] = useState<[number, number] | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+      if (!cancelled) {
+        setMapComponent(() => Component);
+      }
+    };
+
+    void loadMap();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [city, postalCode, street]);
 
   useEffect(() => {
-    const address = [street, city, postalCode].filter(Boolean).join(', ');
-    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`;
+    let cancelled = false;
 
-    fetch(url, { headers: { 'Accept-Language': 'pl', 'User-Agent': 'induo-house/1.0' } })
-      .then(r => r.json())
-      .then(data => {
-        if (data[0]) {
-          setCoords([parseFloat(data[0].lat), parseFloat(data[0].lon)]);
-        } else {
-          const fallbackUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city)}&format=json&limit=1`;
-          return fetch(fallbackUrl, { headers: { 'Accept-Language': 'pl', 'User-Agent': 'induo-house/1.0' } })
-            .then(r => r.json())
-            .then(d => {
-              if (d[0]) setCoords([parseFloat(d[0].lat), parseFloat(d[0].lon)]);
-              else setError(true);
-            });
+    const loadCoordinates = async () => {
+      setLoading(true);
+      setError(false);
+
+      try {
+        const fullAddress = [street, city, postalCode].filter(Boolean).join(', ');
+        const exactMatch = await geocodeAddress(fullAddress);
+        const fallbackMatch = exactMatch ?? (await geocodeAddress(city));
+
+        if (!cancelled) {
+          if (fallbackMatch) {
+            setCoords(fallbackMatch);
+          } else {
+            setError(true);
+          }
         }
-      })
-      .catch(() => setError(true))
-      .finally(() => setLoading(false));
-  }, [city, street, postalCode]);
+      } catch {
+        if (!cancelled) {
+          setError(true);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
 
-  if (loading) return (
-    <div style={{ height: 300, borderRadius: 14, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569', fontSize: 14 }}>
-      Ładowanie mapy…
-    </div>
-  );
+    void loadCoordinates();
 
-  if (error || !coords || !MapComponent) return (
-    <div style={{ height: 300, borderRadius: 14, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569', fontSize: 14 }}>
-      Nie udało się załadować mapy
-    </div>
-  );
+    return () => {
+      cancelled = true;
+    };
+  }, [city, postalCode, street]);
+
+  if (loading) {
+    return (
+      <div style={{ height: 300, borderRadius: 14, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569', fontSize: 14 }}>
+        Ładowanie mapy...
+      </div>
+    );
+  }
+
+  if (error || !coords || !MapComponent) {
+    return (
+      <div style={{ height: 300, borderRadius: 14, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569', fontSize: 14 }}>
+        Nie udało się załadować mapy
+      </div>
+    );
+  }
 
   return (
     <div style={{ height: 300, borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)' }}>

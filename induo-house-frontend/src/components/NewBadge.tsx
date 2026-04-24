@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Zap } from 'lucide-react';
 
 interface Props {
@@ -6,8 +7,10 @@ interface Props {
 }
 
 export default function NewBadge({ createdAt, daysThreshold = 7 }: Props) {
+  const [now] = useState(() => Date.now());
+
   if (!createdAt) return null;
-  const diff = (Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60 * 24);
+  const diff = (now - new Date(createdAt).getTime()) / (1000 * 60 * 60 * 24);
   if (diff > daysThreshold) return null;
 
   return (

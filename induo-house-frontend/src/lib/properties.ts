@@ -1,6 +1,6 @@
 import { apiClient } from './api';
 import { API_ENDPOINTS } from '@/constants';
-import { Property, PaginatedResponse } from '@/types';
+import { CreatePropertyDto, Property, PropertyImage, PaginatedResponse } from '@/types';
 import { PropertyListResponse } from '@/types/property';
 
 export interface PropertyFilters {
@@ -52,16 +52,33 @@ export async function getMyProperties(): Promise<Property[]> {
   return response.data;
 }
 
-export async function createProperty(data: FormData): Promise<Property> {
+export async function createProperty(data: CreatePropertyDto): Promise<Property> {
   const response = await apiClient.post<Property>(
     API_ENDPOINTS.CREATE_PROPERTY,
-    data,
+    data
+  );
+  return response.data;
+}
+
+export async function uploadPropertyImage(
+  propertyId: number,
+  file: File,
+  isPrimary: boolean
+): Promise<PropertyImage> {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('isPrimary', String(isPrimary));
+
+  const response = await apiClient.post<PropertyImage>(
+    API_ENDPOINTS.UPLOAD_PROPERTY_IMAGE(propertyId),
+    formData,
     {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     }
   );
+
   return response.data;
 }
 

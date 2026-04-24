@@ -31,8 +31,7 @@ export async function getCurrentUser(): Promise<User | null> {
   try {
     const response = await apiClient.get<User>(API_ENDPOINTS.ME);
     return response.data;
-  } catch (error) {
-    console.log('User not authenticated');
+  } catch {
     return null;
   }
 }

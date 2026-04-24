@@ -45,16 +45,60 @@ npm run dev
 
 App runs at `http://localhost:3000`
 
+## AI chat
+
+The project now includes a persistent AI chat module with session history.
+
+To enable it locally:
+
+```bash
+cp .env.example .env
+docker compose up -d postgres ollama
+docker exec induo-ollama ollama pull llama3.1:8b
+```
+
+Then set in `.env`:
+
+```env
+APP_AI_ENABLED=true
+AI_CHAT_MODEL=llama3.1:8b
+OLLAMA_BASE_URL=http://localhost:11434
+```
+
+Optional RAG setup:
+
+```env
+APP_AI_RAG_ENABLED=true
+AI_EMBEDDING_MODEL=nomic-embed-text
+```
+
+Frontend chat is available for authenticated users at `/chat`.
+
 ## Environment variables
 
 Copy `.env.example` to `.env`:
 
 ```
 DB_PASSWORD=your_database_password
-JWT_SECRET=your_random_secret_min_32_chars
+JWT_SECRET=your_random_secret_at_least_32_characters_long
+JWT_COOKIE_SECURE=false
+JWT_COOKIE_SAME_SITE=Lax
 ```
 
 Never commit `.env` — it is in `.gitignore`.
+
+`JWT_SECRET` can be a plain-text secret or a Base64-encoded value, but it must be at least 32 bytes long after decoding. For local development on `http://localhost`, keep `JWT_COOKIE_SECURE=false`. For HTTPS deployments, set it to `true`.
+
+AI variables:
+
+```
+APP_AI_ENABLED=false
+APP_AI_RAG_ENABLED=false
+APP_AI_ASSISTANT_NAME=Induo Assistant
+OLLAMA_BASE_URL=http://localhost:11434
+AI_CHAT_MODEL=llama3.1:8b
+AI_EMBEDDING_MODEL=nomic-embed-text
+```
 
 ## API
 
@@ -67,6 +111,20 @@ Never commit `.env` — it is in `.gitignore`.
 | POST | /api/auth/login | Login |
 | POST | /api/auth/logout | Logout |
 | GET  | /api/auth/me | Current user |
+
+</details>
+
+<details>
+<summary>AI Chat — /api/chat</summary>
+
+Requires authentication
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /api/chat/status | AI module status |
+| GET | /api/chat/sessions | User chat sessions |
+| GET | /api/chat/sessions/{sessionId}/messages | Session history |
+| POST | /api/chat/message | Send message to model |
 
 </details>
 
@@ -143,7 +201,7 @@ cd induo-house
 
 ## Security
 
-Passwords are hashed with BCrypt. JWT tokens are stored in httpOnly cookies. All secrets are passed via environment variables. Resource-level authorization ensures only the owner can modify or delete their listing.
+Passwords are hashed with BCrypt. JWT tokens are signed with a secret loaded from environment variables and stored in httpOnly cookies. Cookie behavior (`Secure`, `SameSite`, max age) is configurable per environment. Public users can only read listings, while creating or modifying listings requires authentication and resource-level authorization ensures only the owner can modify or delete their listing.
 
 ## License
 

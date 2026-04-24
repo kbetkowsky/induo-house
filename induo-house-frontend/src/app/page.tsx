@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import PropertyCard from '@/components/PropertyCard';
 import { PropertyListResponse } from '@/types/property';
 import { Search, MapPin, Building2, Home, Trees, Briefcase, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -46,29 +48,24 @@ export default function HomePage() {
   const [areaTo, setAreaTo] = useState('');
   const [activeTab, setActiveTab] = useState<'SALE' | 'RENT'>('SALE');
 
-  const [listings, setListings] = useState<PropertyListResponse[]>([]);
-  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-  const [totalElements, setTotalElements] = useState(0);
+  const { data, isLoading: loading } = useQuery({
+    queryKey: ['home-properties', activeTab, page],
+    queryFn: () => fetchProperties(page, 12, { transactionType: activeTab }),
+  });
 
-  const loadListings = useCallback(async (p = 0) => {
-    setLoading(true);
-    const filters: Record<string, string> = {};
-    if (activeTab) filters.transactionType = activeTab;
-    const result = await fetchProperties(p, 12, filters);
-    setListings(result.content);
-    setTotalPages(result.totalPages);
-    setTotalElements(result.totalElements);
-    setLoading(false);
-  }, [activeTab]);
-
-  useEffect(() => { setPage(0); loadListings(0); }, [activeTab, loadListings]);
+  const listings = data?.content ?? [];
+  const totalPages = data?.totalPages ?? 0;
+  const totalElements = data?.totalElements ?? 0;
 
   const handlePageChange = (newPage: number) => {
     setPage(newPage);
-    loadListings(newPage);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleTabChange = (tab: 'SALE' | 'RENT') => {
+    setActiveTab(tab);
+    setPage(0);
   };
 
   const handleSearch = (e: React.FormEvent) => {
@@ -267,8 +264,8 @@ export default function HomePage() {
 
           <div className="search-box">
             <div className="search-tabs">
-              <button className={`search-tab ${activeTab === 'SALE' ? 'active' : ''}`} onClick={() => setActiveTab('SALE')}>Na sprzedaż</button>
-              <button className={`search-tab ${activeTab === 'RENT' ? 'active' : ''}`} onClick={() => setActiveTab('RENT')}>Na wynajem</button>
+              <button className={`search-tab ${activeTab === 'SALE' ? 'active' : ''}`} onClick={() => handleTabChange('SALE')}>Na sprzedaż</button>
+              <button className={`search-tab ${activeTab === 'RENT' ? 'active' : ''}`} onClick={() => handleTabChange('RENT')}>Na wynajem</button>
             </div>
 
             <form onSubmit={handleSearch}>
@@ -367,7 +364,7 @@ export default function HomePage() {
         <div className="category-grid">
           {CATEGORIES.map(({ label, type, icon: Icon, img }) => (
             <Link key={type} href={`/properties?propertyType=${type}&transactionType=${activeTab}`} className="category-card">
-              <img src={img} alt={label} className="category-img" />
+              <Image src={img} alt={label} className="category-img" width={400} height={160} unoptimized />
               <div className="category-label">
                 <Icon size={16} style={{ color: '#c0392b' }} />
                 {label}
@@ -392,8 +389,8 @@ export default function HomePage() {
         </div>
 
         <div className="listings-tabs">
-          <button className={`listings-tab ${activeTab === 'SALE' ? 'active' : ''}`} onClick={() => setActiveTab('SALE')}>Na sprzedaż</button>
-          <button className={`listings-tab ${activeTab === 'RENT' ? 'active' : ''}`} onClick={() => setActiveTab('RENT')}>Na wynajem</button>
+          <button className={`listings-tab ${activeTab === 'SALE' ? 'active' : ''}`} onClick={() => handleTabChange('SALE')}>Na sprzedaż</button>
+          <button className={`listings-tab ${activeTab === 'RENT' ? 'active' : ''}`} onClick={() => handleTabChange('RENT')}>Na wynajem</button>
         </div>
 
         {loading ? (

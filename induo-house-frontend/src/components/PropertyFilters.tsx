@@ -14,6 +14,8 @@ export interface FilterParams {
   maxPrice?: number;
 }
 
+type FilterValue = FilterParams[keyof FilterParams];
+
 export default function PropertyFilters({ onFilterChange }: PropertyFiltersProps) {
   const [filters, setFilters] = useState<FilterParams>({
     city: '',
@@ -23,7 +25,7 @@ export default function PropertyFilters({ onFilterChange }: PropertyFiltersProps
     maxPrice: undefined,
   });
 
-  const handleChange = (field: keyof FilterParams, value: any) => {
+  const handleChange = (field: keyof FilterParams, value: FilterValue) => {
     const newFilters = { ...filters, [field]: value };
     setFilters(newFilters);
     onFilterChange(newFilters);

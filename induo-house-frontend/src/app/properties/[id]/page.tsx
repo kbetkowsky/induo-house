@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { getPropertyById, deleteProperty } from '@/lib/properties';
 import { apiClient } from '@/lib/api';
 import { Property, PropertyImage } from '@/types';
@@ -17,6 +18,11 @@ import {
 } from 'lucide-react';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+
+type DetailChip = {
+  icon: React.ReactNode;
+  label: string;
+};
 
 const TYPE_MAP: Record<string, string> = {
   APARTMENT: 'Mieszkanie', HOUSE: 'Dom',
@@ -313,9 +319,12 @@ export default function PropertyDetailPage() {
               <ChevronLeft size={22} />
             </button>
           )}
-          <img
+          <Image
             src={imgUrl(images[lightboxIdx].url)}
             alt=""
+            width={1600}
+            height={1200}
+            unoptimized
             style={{ maxWidth: '88vw', maxHeight: '86vh', objectFit: 'contain', borderRadius: 14 }}
             onClick={e => e.stopPropagation()}
           />
@@ -329,7 +338,7 @@ export default function PropertyDetailPage() {
               {images.map((img, i) => (
                 <button key={img.id} onClick={e => { e.stopPropagation(); setLightboxIdx(i); }}
                   style={{ width: 48, height: 34, borderRadius: 6, overflow: 'hidden', border: `2px solid ${i === lightboxIdx ? '#fff' : 'transparent'}`, opacity: i === lightboxIdx ? 1 : 0.5, cursor: 'pointer', padding: 0, background: 'none', transition: 'opacity 0.2s, border-color 0.2s', flexShrink: 0 }}>
-                  <img src={imgUrl(img.url)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <Image src={imgUrl(img.url)} alt="" width={96} height={68} unoptimized style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </button>
               ))}
             </div>
@@ -376,7 +385,7 @@ export default function PropertyDetailPage() {
             <div style={{ position: 'relative', marginBottom: 28 }}>
               <div className="airbnb-gallery">
                 <div className="airbnb-cell main-cell" onClick={() => openLightbox(0)}>
-                  <img src={imgUrl(mainImg.url)} alt={property.title} />
+                  <Image src={imgUrl(mainImg.url)} alt={property.title} width={1200} height={880} unoptimized />
                   <div className="overlay" />
                   {isOwner && (
                     <button onClick={e => { e.stopPropagation(); handleDeleteImage(mainImg.id); }}
@@ -389,7 +398,7 @@ export default function PropertyDetailPage() {
                   const isLast = i === 3 && remaining > 0;
                   return (
                     <div key={img.id} className="airbnb-cell" onClick={() => openLightbox(i + 1)}>
-                      <img src={imgUrl(img.url)} alt="" />
+                      <Image src={imgUrl(img.url)} alt="" width={600} height={440} unoptimized />
                       <div className="overlay" />
                       {isLast && (
                         <div className="more-badge" onClick={() => openLightbox(i + 1)}>
@@ -501,9 +510,9 @@ export default function PropertyDetailPage() {
                     property.area          && { icon: <Square size={13} />,    label: `${property.area} m²` },
                     property.numberOfRooms && { icon: <BedDouble size={13} />, label: `${property.numberOfRooms} pok.` },
                     property.floor != null && { icon: <Layers size={13} />,    label: `Piętro ${property.floor}${property.totalFloors ? `/${property.totalFloors}` : ''}` },
-                  ].filter(Boolean).map((item: any, i) => (
+                  ].filter(Boolean).map((item, i) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--text-secondary)', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 10px' }}>
-                      {item.icon} {item.label}
+                      {(item as DetailChip).icon} {(item as DetailChip).label}
                     </div>
                   ))}
                 </div>

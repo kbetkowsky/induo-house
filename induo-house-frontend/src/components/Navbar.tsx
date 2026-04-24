@@ -29,7 +29,7 @@ export default function Navbar() {
     };
   }, []);
 
-  const isAgent = user?.role === 'AGENT' || user?.role === 'ADMIN';
+  const canCreateProperties = !!user;
 
   const isDark = theme === 'dark' ||
     (theme === 'system' && typeof window !== 'undefined' &&
@@ -85,6 +85,7 @@ export default function Navbar() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 2, position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
               {navLink('/', 'Home')}
               {navLink('/properties', 'Oferty')}
+              {user && navLink('/chat', 'AI Chat')}
             </div>
           )}
 
@@ -109,7 +110,7 @@ export default function Navbar() {
                 {isDark ? <Sun size={16} /> : <Moon size={16} />}
               </button>
 
-              {isAgent && (
+              {canCreateProperties && (
                 <Link href="/properties/create" style={{ textDecoration: 'none' }}>
                   <button style={{
                     display: 'flex', alignItems: 'center', gap: 7,
@@ -202,7 +203,7 @@ export default function Navbar() {
           borderTop: '1px solid var(--navbar-border)',
           padding: '8px 16px 16px',
         }}>
-          {[{ href: '/', label: 'Home' }, { href: '/properties', label: 'Oferty' }].map(({ href, label }) => (
+          {[{ href: '/', label: 'Home' }, { href: '/properties', label: 'Oferty' }, ...(user ? [{ href: '/chat', label: 'AI Chat' }] : [])].map(({ href, label }) => (
             <Link key={href} href={href} onClick={() => setOpen(false)} style={{
               display: 'block', padding: '10px 12px', borderRadius: 8,
               color: 'var(--text-secondary)', textDecoration: 'none',
@@ -211,7 +212,7 @@ export default function Navbar() {
               {label}
             </Link>
           ))}
-          {isAgent && (
+          {canCreateProperties && (
             <Link href="/properties/create" onClick={() => setOpen(false)} style={{
               display: 'block', padding: '10px 12px', borderRadius: 8,
               color: 'var(--accent-bright)', textDecoration: 'none',

@@ -1,13 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { Building2, Home, Search, ArrowLeft } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Building2, Home, Search } from 'lucide-react';
 
 export default function NotFound() {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-
   return (
     <div style={{ minHeight: '100vh', background: '#080b14', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px', position: 'relative', overflow: 'hidden' }}>
       <style>{`

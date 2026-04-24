@@ -16,6 +16,14 @@ services:
       timeout: 5s
       retries: 5
 
+  ollama:
+    image: ollama/ollama:latest
+    container_name: induo-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
   backend:
     image: ${ECR_REGISTRY}/induo-backend:latest
     container_name: induo-backend
@@ -26,9 +34,19 @@ services:
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
+      JWT_COOKIE_SECURE: ${JWT_COOKIE_SECURE:-false}
+      JWT_COOKIE_SAME_SITE: ${JWT_COOKIE_SAME_SITE:-Lax}
+      APP_AI_ENABLED: ${APP_AI_ENABLED:-true}
+      APP_AI_RAG_ENABLED: ${APP_AI_RAG_ENABLED:-false}
+      APP_AI_ASSISTANT_NAME: ${APP_AI_ASSISTANT_NAME:-Induo Assistant}
+      OLLAMA_BASE_URL: http://ollama:11434
+      AI_CHAT_MODEL: ${AI_CHAT_MODEL:-llama3.1:8b}
+      AI_EMBEDDING_MODEL: ${AI_EMBEDDING_MODEL:-nomic-embed-text}
     depends_on:
       postgres:
         condition: service_healthy
+      ollama:
+        condition: service_started
 
   frontend:
     image: ${ECR_REGISTRY}/induo-frontend:latest
@@ -36,9 +54,10 @@ services:
     ports:
       - "3000:3000"
     environment:
-      NEXT_PUBLIC_API_URL: http://3.75.225.78:8080
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
     depends_on:
       - backend
 
 volumes:
   postgres_data:
+  ollama_data:

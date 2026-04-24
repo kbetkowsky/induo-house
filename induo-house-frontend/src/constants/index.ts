@@ -12,6 +12,7 @@ export const API_ENDPOINTS = {
   CREATE_PROPERTY: '/properties',
   UPDATE_PROPERTY: (id: number) => `/properties/${id}`,
   DELETE_PROPERTY: (id: number) => `/properties/${id}`,
+  UPLOAD_PROPERTY_IMAGE: (propertyId: number) => `/properties/${propertyId}/images`,
   DELETE_IMAGE: (propertyId: number, imageId: number) => `/properties/${propertyId}/images/${imageId}`,
 } as const;
 

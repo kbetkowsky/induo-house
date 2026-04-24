@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { getProperties } from '@/lib/properties';
 import { PropertyListResponse } from '@/types/property';
 import PropertyCard from '@/components/PropertyCard';
-import { Building2 } from 'lucide-react';
 
 interface Props {
   currentId: number;

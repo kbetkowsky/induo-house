@@ -5,7 +5,6 @@ import { Heart } from 'lucide-react';
 
 interface Props {
   propertyId: number;
-  propertyTitle: string;
 }
 
 const STORAGE_KEY = 'induo_favorites';
@@ -20,7 +19,7 @@ function saveFavorites(ids: number[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
 }
 
-export default function FavoriteButton({ propertyId, propertyTitle }: Props) {
+export default function FavoriteButton({ propertyId }: Props) {
   const [isFav, setIsFav] = useState(false);
   const [pulse, setPulse] = useState(false);
 

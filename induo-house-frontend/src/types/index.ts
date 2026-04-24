@@ -75,12 +75,15 @@ export interface CreatePropertyDto {
   title: string;
   description: string;
   price: number;
-  location: string;
   city: string;
+  street: string;
+  postalCode: string;
   propertyType: Property['propertyType'];
+  transactionType: Property['transactionType'];
   area: number;
-  bedrooms: number;
-  bathrooms: number;
+  numberOfRooms: number | null;
+  floor: number | null;
+  totalFloors: number | null;
 }
 
 export interface PaginatedResponse<T> {

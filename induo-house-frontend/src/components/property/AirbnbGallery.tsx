@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { ChevronLeft, ChevronRight, Grid2X2, X, ZoomIn, Building2 } from 'lucide-react';
 import { PropertyImage } from '@/types';
 
@@ -67,9 +68,12 @@ export default function AirbnbGallery({ images, title, isOwner, onDeleteImage }:
           )}
 
           {/* Zdjęcie */}
-          <img
+          <Image
             src={images[lightboxIdx].url}
             alt={title}
+            width={1600}
+            height={1200}
+            unoptimized
             onClick={e => e.stopPropagation()}
             style={{ maxHeight: '90vh', maxWidth: '90vw', objectFit: 'contain', borderRadius: 16 }}
           />
@@ -109,8 +113,11 @@ export default function AirbnbGallery({ images, title, isOwner, onDeleteImage }:
           style={{ gridRow: '1 / 3', position: 'relative', overflow: 'hidden', cursor: 'pointer', background: '#111827' }}
           onClick={() => openLightbox(0)}
         >
-          <img
+          <Image
             src={main.url} alt={title}
+            width={1200}
+            height={880}
+            unoptimized
             style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.4s ease' }}
             onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.03)')}
             onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
@@ -148,8 +155,11 @@ export default function AirbnbGallery({ images, title, isOwner, onDeleteImage }:
             >
               {img ? (
                 <>
-                  <img
+                  <Image
                     src={img.url} alt=""
+                    width={600}
+                    height={440}
+                    unoptimized
                     style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.35s ease' }}
                     onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.06)')}
                     onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}

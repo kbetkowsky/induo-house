@@ -105,7 +105,7 @@ function PropertiesPageInner() {
     if (bedrooms)        params.set('bedrooms', bedrooms);
     if (currentPage)     params.set('page', String(currentPage));
     router.replace(`/properties?${params.toString()}`, { scroll: false });
-  }, [city, propertyType, transactionType, minPrice, maxPrice, minArea, maxArea, bedrooms, currentPage]);
+  }, [city, propertyType, transactionType, minPrice, maxPrice, minArea, maxArea, bedrooms, currentPage, router]);
 
   useEffect(() => {
     setCurrentPage(0);

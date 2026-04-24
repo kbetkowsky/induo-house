@@ -21,20 +21,27 @@ function SkeletonCard() {
 }
 
 export default function FavoritesPage() {
-  const [ids, setIds]               = useState<number[]>([]);
+  const [ids, setIds] = useState<number[]>([]);
   const [properties, setProperties] = useState<PropertyListResponse[]>([]);
-  const [loading, setLoading]       = useState(true);
+  const [loading, setLoading] = useState(true);
 
-  const loadFavorites = async (favIds: number[]) => {
-    if (favIds.length === 0) { setProperties([]); setLoading(false); return; }
+  const loadFavorites = async (favoriteIds: number[]) => {
+    if (favoriteIds.length === 0) {
+      setProperties([]);
+      setLoading(false);
+      return;
+    }
+
     try {
-      const results = await Promise.allSettled(favIds.map(id => getPropertyById(id)));
-      const ok = (results as PromiseSettledResult<PropertyListResponse>[])
-        .filter((r): r is PromiseFulfilledResult<PropertyListResponse> => r.status === 'fulfilled')
-        .map(r => r.value);
-      setProperties(ok);
-    } catch {}
-    finally { setLoading(false); }
+      const results = await Promise.allSettled(favoriteIds.map((id) => getPropertyById(id)));
+      const loaded = (results as PromiseSettledResult<PropertyListResponse>[])
+        .filter((result): result is PromiseFulfilledResult<PropertyListResponse> => result.status === 'fulfilled')
+        .map((result) => result.value);
+      setProperties(loaded);
+    } catch {
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -42,7 +49,9 @@ export default function FavoritesPage() {
       const stored: number[] = JSON.parse(localStorage.getItem('induo_favorites') ?? '[]');
       setIds(stored);
       loadFavorites(stored);
-    } catch { setLoading(false); }
+    } catch {
+      setLoading(false);
+    }
   }, []);
 
   const clearAll = () => {
@@ -52,10 +61,10 @@ export default function FavoritesPage() {
   };
 
   const removeOne = (id: number) => {
-    const next = ids.filter(i => i !== id);
+    const next = ids.filter((item) => item !== id);
     localStorage.setItem('induo_favorites', JSON.stringify(next));
     setIds(next);
-    setProperties(prev => prev.filter(p => p.id !== id));
+    setProperties((current) => current.filter((property) => property.id !== id));
   };
 
   return (
@@ -92,12 +101,17 @@ export default function FavoritesPage() {
       `}</style>
 
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 20px' }}>
-
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32, flexWrap: 'wrap', gap: 16 }}>
           <div>
-            <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--text-muted)', fontSize: 13, textDecoration: 'none', fontWeight: 500, marginBottom: 12 }}
-              onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
-              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+            <Link
+              href="/"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--text-muted)', fontSize: 13, textDecoration: 'none', fontWeight: 500, marginBottom: 12 }}
+              onMouseEnter={(event) => {
+                event.currentTarget.style.color = 'var(--text-primary)';
+              }}
+              onMouseLeave={(event) => {
+                event.currentTarget.style.color = 'var(--text-muted)';
+              }}
             >
               <ArrowLeft size={14} /> Strona główna
             </Link>
@@ -107,7 +121,11 @@ export default function FavoritesPage() {
             </h1>
             {!loading && (
               <p style={{ fontSize: 14, color: 'var(--text-muted)', marginTop: 6 }}>
-                {properties.length === 0 ? 'Brak zapisanych ofert' : `${properties.length} ${properties.length === 1 ? 'zapisana oferta' : properties.length < 5 ? 'zapisane oferty' : 'zapisanych ofert'}`}
+                {properties.length === 0
+                  ? 'Brak zapisanych ofert'
+                  : `${properties.length} ${
+                      properties.length === 1 ? 'zapisana oferta' : properties.length < 5 ? 'zapisane oferty' : 'zapisanych ofert'
+                    }`}
               </p>
             )}
           </div>
@@ -120,18 +138,51 @@ export default function FavoritesPage() {
 
         {loading && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(300px,1fr))', gap: 20 }}>
-            {Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} />)}
+            {Array.from({ length: 3 }).map((_, index) => (
+              <SkeletonCard key={index} />
+            ))}
           </div>
         )}
 
         {!loading && properties.length === 0 && (
           <div style={{ textAlign: 'center', padding: '80px 20px' }}>
-            <div style={{ width: 80, height: 80, borderRadius: 24, background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+            <div
+              style={{
+                width: 80,
+                height: 80,
+                borderRadius: 24,
+                background: 'rgba(248,113,113,0.1)',
+                border: '1px solid rgba(248,113,113,0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 24px',
+              }}
+            >
               <Heart size={36} style={{ color: '#f87171' }} />
             </div>
             <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 10 }}>Brak ulubionych</h2>
-            <p style={{ fontSize: 15, color: 'var(--text-muted)', marginBottom: 28, lineHeight: 1.6 }}>Kliknij serduszko przy dowolnym ogłoszeniu,<br />aby zapisać je tutaj.</p>
-            <Link href="/properties" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 26px', borderRadius: 14, background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: '#fff', textDecoration: 'none', fontWeight: 700, fontSize: 15, boxShadow: '0 4px 18px rgba(37,99,235,0.35)' }}>
+            <p style={{ fontSize: 15, color: 'var(--text-muted)', marginBottom: 28, lineHeight: 1.6 }}>
+              Kliknij serduszko przy dowolnym ogłoszeniu,
+              <br />
+              aby zapisać je tutaj.
+            </p>
+            <Link
+              href="/properties"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '12px 26px',
+                borderRadius: 14,
+                background: 'linear-gradient(135deg,#2563eb,#1d4ed8)',
+                color: '#fff',
+                textDecoration: 'none',
+                fontWeight: 700,
+                fontSize: 15,
+                boxShadow: '0 4px 18px rgba(37,99,235,0.35)',
+              }}
+            >
               <Building2 size={16} /> Przeglądaj oferty
             </Link>
           </div>
@@ -139,8 +190,8 @@ export default function FavoritesPage() {
 
         {!loading && properties.length > 0 && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(300px,1fr))', gap: 20 }}>
-            {properties.map((property, idx) => (
-              <div key={property.id} className="fav-card-wrap" style={{ position: 'relative', animationDelay: `${idx * 0.06}s` }}>
+            {properties.map((property, index) => (
+              <div key={property.id} className="fav-card-wrap" style={{ position: 'relative', animationDelay: `${index * 0.06}s` }}>
                 <button className="remove-fav" onClick={() => removeOne(property.id)} title="Usuń z ulubionych">
                   <Trash2 size={13} />
                 </button>
