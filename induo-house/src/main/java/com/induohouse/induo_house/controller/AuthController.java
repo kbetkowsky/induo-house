@@ -7,13 +7,13 @@ import com.induohouse.induo_house.dto.user.UserDto;
 import com.induohouse.induo_house.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,11 +29,14 @@ public class AuthController {
     @Value("${jwt.cookie.name:auth_token}")
     private String cookieName;
 
-    @Value("${jwt.cookie.max-age:604800}")
+    @Value("${jwt.cookie.max-age:86400}")
     private int cookieMaxAge;
 
     @Value("${jwt.cookie.secure:false}")
     private boolean cookieSecure;
+
+    @Value("${jwt.cookie.same-site:Lax}")
+    private String cookieSameSite;
 
     @Operation(summary = "Zarejestruj nowego użytkownika")
     @PostMapping("/register")
@@ -74,13 +77,7 @@ public class AuthController {
     public ResponseEntity<Void> logout(HttpServletResponse response) {
         log.info("Logout request - clearing auth cookie");
 
-        Cookie cookie = new Cookie(cookieName, "");
-        cookie.setHttpOnly(true);
-        cookie.setSecure(cookieSecure);
-        cookie.setPath("/");
-        cookie.setMaxAge(0);
-
-        response.addCookie(cookie);
+        response.addHeader("Set-Cookie", buildAuthCookie("").maxAge(0).build().toString());
 
         log.info("Auth cookie cleared successfully");
         return ResponseEntity.ok().build();
@@ -96,22 +93,19 @@ public class AuthController {
     }
 
     private void addAuthCookie(HttpServletResponse response, String token) {
-        Cookie cookie = new Cookie(cookieName, token);
+        response.addHeader("Set-Cookie", buildAuthCookie(token).build().toString());
 
-        cookie.setHttpOnly(true);
+        log.debug("Auth cookie added: name={}, maxAge={}, secure={}, sameSite={}, httpOnly=true",
+                cookieName, cookieMaxAge, cookieSecure, cookieSameSite);
+    }
 
-        cookie.setSecure(cookieSecure);
-
-        cookie.setPath("/");
-
-        cookie.setMaxAge(cookieMaxAge);
-
-        cookie.setAttribute("SameSite", "Lax");
-
-        response.addCookie(cookie);
-
-        log.debug("Auth cookie added: name={}, maxAge={}, secure={}, httpOnly=true",
-                cookieName, cookieMaxAge, cookieSecure);
+    private ResponseCookie.ResponseCookieBuilder buildAuthCookie(String token) {
+        return ResponseCookie.from(cookieName, token)
+                .httpOnly(true)
+                .secure(cookieSecure)
+                .path("/")
+                .sameSite(cookieSameSite)
+                .maxAge(cookieMaxAge);
     }
 
     private UserDto convertToUserDto(AuthResponse authResponse) {
@@ -120,6 +114,7 @@ public class AuthController {
                 .email(authResponse.getEmail())
                 .firstName(authResponse.getFirstName())
                 .lastName(authResponse.getLastName())
+                .role(authResponse.getRole())
                 .build();
     }
 }

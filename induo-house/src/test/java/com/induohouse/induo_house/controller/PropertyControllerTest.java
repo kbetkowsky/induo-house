@@ -150,8 +150,7 @@ class PropertyControllerTest {
                     "floor": 2,
                     "totalFloors": 8,
                     "transactionType": "SALE",
-                    "propertyType": "APARTMENT",
-                    "imageUrl": "https://example.com/photo.jpg"
+                    "propertyType": "APARTMENT"
                 }
                 """;
 
@@ -165,6 +164,32 @@ class PropertyControllerTest {
                 .andExpect(jsonPath("$.title", is("Nowe mieszkanie")))
                 .andExpect(jsonPath("$.city", is("Kraków")))
                 .andExpect(jsonPath("$.status", is("ACTIVE")));
+    }
+
+    @Test
+    void createProperty_ShouldReturn401_WhenUserNotAuthenticated() throws Exception {
+        String requestBody = """
+                {
+                    "title": "Nowe mieszkanie",
+                    "description": "Opis",
+                    "price": 600000,
+                    "area": 65,
+                    "city": "KrakĂłw",
+                    "street": "FloriaĹ„ska 5",
+                    "postalCode": "31-000",
+                    "numberOfRooms": 3,
+                    "floor": 2,
+                    "totalFloors": 8,
+                    "transactionType": "SALE",
+                    "propertyType": "APARTMENT"
+                }
+                """;
+
+        mockMvc().perform(post("/api/properties")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andDo(print())
+                .andExpect(status().isUnauthorized());
     }
 
 

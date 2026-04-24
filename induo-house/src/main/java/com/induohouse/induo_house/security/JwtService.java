@@ -1,8 +1,8 @@
 package com.induohouse.induo_house.security;
 
+import jakarta.annotation.PostConstruct;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
@@ -10,7 +10,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
-import java.security.Key;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -27,6 +27,13 @@ public class JwtService {
 
     @Value("${jwt.refresh-expiration}")
     private long refreshExpiration;
+
+    @PostConstruct
+    void validateConfiguration() {
+        if (getSigningKeyBytes().length < 32) {
+            throw new IllegalStateException("JWT secret must be at least 32 bytes long");
+        }
+    }
 
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
@@ -87,8 +94,20 @@ public class JwtService {
     }
 
     private SecretKey getSignInKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
-        return Keys.hmacShaKeyFor(keyBytes);
+        return Keys.hmacShaKeyFor(getSigningKeyBytes());
+    }
+
+    private byte[] getSigningKeyBytes() {
+        try {
+            byte[] decoded = Decoders.BASE64.decode(secretKey);
+            if (decoded.length >= 32) {
+                return decoded;
+            }
+        } catch (RuntimeException ignored) {
+            // Fall back to plain-text secret for easier local setup.
+        }
+
+        return secretKey.getBytes(StandardCharsets.UTF_8);
     }
 }
 

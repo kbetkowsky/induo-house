@@ -154,10 +154,18 @@ class AuthControllerTest {
 
     @Test
     void logout_ShouldReturn200AndClearCookie() throws Exception {
-        mockMvc().perform(post("/api/auth/logout"))
+        mockMvc().perform(post("/api/auth/logout")
+                        .with(authentication(userAuth(1L, "jan@test.com"))))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(cookie().maxAge("auth_token", 0));
+    }
+
+    @Test
+    void logout_ShouldReturn401_WhenNotAuthenticated() throws Exception {
+        mockMvc().perform(post("/api/auth/logout"))
+                .andDo(print())
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

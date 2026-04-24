@@ -4,8 +4,10 @@ import com.induohouse.induo_house.entity.ChatSession;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface ChatSessionRepository extends JpaRepository<ChatSession, UUID> {
     List<ChatSession> findByUserEmailOrderByCreatedAtDesc(String email);
+    Optional<ChatSession> findByIdAndUserEmail(UUID id, String email);
 }
