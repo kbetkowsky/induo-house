@@ -73,7 +73,7 @@ describe('PropertyCard', () => {
 
   it('renders placeholder icon when no image', () => {
     render(<PropertyCard property={mockProperty} />);
-    expect(screen.getByText('🏠')).toBeInTheDocument();
+    expect(screen.getByLabelText('Brak zdjęcia')).toBeInTheDocument();
   });
 
   it('toggles favorite on heart button click', () => {
