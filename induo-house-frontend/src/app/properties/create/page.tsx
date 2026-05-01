@@ -1,272 +1,164 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { AxiosError } from 'axios';
-import { ArrowLeft, Camera, Check, Home, MapPin, UploadCloud, X } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+import { useRouter } from 'next/navigation';
+import { Camera, Check, UploadCloud, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useAuth } from '@/lib/auth';
 import { createProperty, uploadPropertyImage } from '@/lib/properties';
+import { CreatePropertyPayload, PropertyType, TransactionType } from '@/types';
 
-function getErrorMessage(error: unknown) {
-  if (error instanceof AxiosError) {
-    const responseData = error.response?.data as { message?: string; error?: string } | undefined;
-    return responseData?.message ?? responseData?.error ?? 'Błąd podczas dodawania ogłoszenia';
-  }
-  return 'Błąd podczas dodawania ogłoszenia';
-}
+type FormState = Record<keyof CreatePropertyPayload, string>;
+
+const initial: FormState = {
+  title: '',
+  description: '',
+  price: '',
+  area: '',
+  city: '',
+  street: '',
+  postalCode: '',
+  numberOfRooms: '',
+  floor: '',
+  totalFloors: '',
+  propertyType: 'APARTMENT',
+  transactionType: 'SALE',
+};
 
 export default function CreatePropertyPage() {
-  const router = useRouter();
   const { user } = useAuth();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState({
-    title: '',
-    description: '',
-    price: '',
-    area: '',
-    city: '',
-    street: '',
-    postalCode: '',
-    numberOfRooms: '',
-    floor: '',
-    totalFloors: '',
-    propertyType: 'APARTMENT',
-    transactionType: 'SALE',
-  });
-  const [images, setImages] = useState<File[]>([]);
-  const [primaryIndex, setPrimaryIndex] = useState(0);
+  const router = useRouter();
+  const [form, setForm] = useState(initial);
+  const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
+  const [primary, setPrimary] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (user === null) router.push('/login');
   }, [router, user]);
 
-  useEffect(() => () => previews.forEach((preview) => URL.revokeObjectURL(preview)), [previews]);
+  useEffect(() => () => previews.forEach(URL.revokeObjectURL), [previews]);
 
   if (user === null) return null;
 
-  const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    setForm((prev) => ({ ...prev, [event.target.name]: event.target.value }));
-  };
+  function update(event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {
+    setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
+  }
 
-  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files ?? []);
-    if (!files.length) return;
-    setImages((prev) => [...prev, ...files]);
-    setPreviews((prev) => [...prev, ...files.map((file) => URL.createObjectURL(file))]);
-  };
+  function addFiles(event: React.ChangeEvent<HTMLInputElement>) {
+    const next = Array.from(event.target.files || []);
+    setFiles((current) => [...current, ...next]);
+    setPreviews((current) => [...current, ...next.map((file) => URL.createObjectURL(file))]);
+  }
 
-  const removeImage = (index: number) => {
-    URL.revokeObjectURL(previews[index]);
-    setImages((prev) => prev.filter((_, currentIndex) => currentIndex !== index));
-    setPreviews((prev) => prev.filter((_, currentIndex) => currentIndex !== index));
-    if (primaryIndex === index) setPrimaryIndex(0);
-    else if (primaryIndex > index) setPrimaryIndex((prev) => prev - 1);
-  };
-
-  const handleSubmit = async (event: React.FormEvent) => {
+  async function submit(event: React.FormEvent) {
     event.preventDefault();
     setLoading(true);
-    setError(null);
+    setError('');
     try {
-      const property = await createProperty({
+      const payload: CreatePropertyPayload = {
         title: form.title,
         description: form.description,
-        price: Number.parseFloat(form.price),
-        area: Number.parseFloat(form.area),
+        price: Number(form.price),
+        area: Number(form.area),
         city: form.city,
         street: form.street,
         postalCode: form.postalCode,
-        numberOfRooms: form.numberOfRooms ? Number.parseInt(form.numberOfRooms, 10) : null,
-        floor: form.floor ? Number.parseInt(form.floor, 10) : null,
-        totalFloors: form.totalFloors ? Number.parseInt(form.totalFloors, 10) : null,
-        propertyType: form.propertyType,
-        transactionType: form.transactionType,
-      });
-
-      for (let index = 0; index < images.length; index += 1) {
-        await uploadPropertyImage(property.id, images[index], index === primaryIndex);
+        numberOfRooms: form.numberOfRooms ? Number(form.numberOfRooms) : null,
+        floor: form.floor ? Number(form.floor) : null,
+        totalFloors: form.totalFloors ? Number(form.totalFloors) : null,
+        propertyType: form.propertyType as PropertyType,
+        transactionType: form.transactionType as TransactionType,
+      };
+      const property = await createProperty(payload);
+      for (let index = 0; index < files.length; index += 1) {
+        await uploadPropertyImage(property.id, files[index], index === primary);
       }
       router.push(`/properties/${property.id}`);
-    } catch (error: unknown) {
-      setError(getErrorMessage(error));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Nie udało się opublikować ogłoszenia');
     } finally {
       setLoading(false);
     }
-  };
+  }
+
+  function remove(index: number) {
+    URL.revokeObjectURL(previews[index]);
+    setFiles((current) => current.filter((_, i) => i !== index));
+    setPreviews((current) => current.filter((_, i) => i !== index));
+    if (primary === index) setPrimary(0);
+  }
 
   return (
-    <main className="create-page">
-      <section className="create-hero">
-        <button type="button" onClick={() => router.back()}><ArrowLeft size={17} /> Wróć</button>
-        <span><Home size={16} /> Nowe ogłoszenie</span>
-        <h1>Dodaj nieruchomość w formie, która dobrze się sprzedaje.</h1>
-        <p>Uzupełnij najważniejsze dane, dodaj zdjęcia i opublikuj ofertę w katalogu.</p>
+    <main className="page">
+      <section className="container page-hero">
+        <span className="eyebrow">Publikacja oferty</span>
+        <h1>Dodaj ogłoszenie, które wygląda profesjonalnie od pierwszego kliknięcia.</h1>
+        <p>Uzupełnij parametry, lokalizację i zdjęcia. Po zapisie oferta trafi do katalogu.</p>
       </section>
-
-      <form className="create-layout" onSubmit={handleSubmit}>
-        <div className="create-main">
-          {error && <div className="form-error">{error}</div>}
-
-          <section className="form-section">
-            <div className="form-section-head">
-              <span>01</span>
-              <div>
-                <h2>Podstawy ogłoszenia</h2>
-                <p>Nazwa i opis powinny szybko wyjaśniać, co wyróżnia ofertę.</p>
-              </div>
+      <form className="container create-layout" onSubmit={submit}>
+        <div className="create-stack">
+          {error ? <div className="error">{error}</div> : null}
+          <Panel title="Opis oferty">
+            <Field label="Tytuł"><input name="title" value={form.title} onChange={update} required placeholder="Jasne 3 pokoje z balkonem" /></Field>
+            <Field label="Opis"><textarea name="description" value={form.description} onChange={update} rows={6} placeholder="Opisz standard, układ i najważniejsze atuty..." /></Field>
+          </Panel>
+          <Panel title="Parametry">
+            <div className="form-grid">
+              <Field label="Typ"><select name="propertyType" value={form.propertyType} onChange={update}><option value="APARTMENT">Mieszkanie</option><option value="HOUSE">Dom</option><option value="LAND">Działka</option></select></Field>
+              <Field label="Transakcja"><select name="transactionType" value={form.transactionType} onChange={update}><option value="SALE">Sprzedaż</option><option value="RENT">Wynajem</option></select></Field>
+              <Field label="Cena"><input name="price" type="number" value={form.price} onChange={update} required placeholder="780000" /></Field>
+              <Field label="Metraż"><input name="area" type="number" step="0.01" value={form.area} onChange={update} required placeholder="64" /></Field>
+              <Field label="Pokoje"><input name="numberOfRooms" type="number" value={form.numberOfRooms} onChange={update} placeholder="3" /></Field>
+              <Field label="Piętro"><input name="floor" type="number" value={form.floor} onChange={update} placeholder="2" /></Field>
             </div>
-
-            <label className="form-field">
-              <span>Tytuł</span>
-              <div><input name="title" value={form.title} onChange={handleChange} required placeholder="np. Jasne 3 pokoje blisko parku" /></div>
-            </label>
-
-            <label className="form-field">
-              <span>Opis</span>
-              <div><textarea name="description" value={form.description} onChange={handleChange} required rows={6} placeholder="Opisz układ, standard, lokalizację i najważniejsze atuty..." /></div>
-            </label>
-          </section>
-
-          <section className="form-section">
-            <div className="form-section-head">
-              <span>02</span>
-              <div>
-                <h2>Parametry</h2>
-                <p>Cena, typ transakcji i dane techniczne nieruchomości.</p>
-              </div>
+          </Panel>
+          <Panel title="Lokalizacja">
+            <div className="form-grid">
+              <Field label="Miasto"><input name="city" value={form.city} onChange={update} required placeholder="Kraków" /></Field>
+              <Field label="Kod pocztowy"><input name="postalCode" value={form.postalCode} onChange={update} required placeholder="31-000" pattern="\d{2}-\d{3}" /></Field>
             </div>
-
-            <div className="form-grid-two">
-              <label className="form-field">
-                <span>Typ</span>
-                <div>
-                  <select name="propertyType" value={form.propertyType} onChange={handleChange}>
-                    <option value="APARTMENT">Mieszkanie</option>
-                    <option value="HOUSE">Dom</option>
-                    <option value="LAND">Działka</option>
-                    <option value="COMMERCIAL">Lokal</option>
-                  </select>
-                </div>
-              </label>
-              <label className="form-field">
-                <span>Transakcja</span>
-                <div>
-                  <select name="transactionType" value={form.transactionType} onChange={handleChange}>
-                    <option value="SALE">Sprzedaż</option>
-                    <option value="RENT">Wynajem</option>
-                  </select>
-                </div>
-              </label>
-              <label className="form-field">
-                <span>Cena</span>
-                <div><input type="number" name="price" value={form.price} onChange={handleChange} required placeholder="650000" /></div>
-              </label>
-              <label className="form-field">
-                <span>Powierzchnia m²</span>
-                <div><input type="number" step="0.01" name="area" value={form.area} onChange={handleChange} required placeholder="72" /></div>
-              </label>
-              <label className="form-field">
-                <span>Pokoje</span>
-                <div><input type="number" name="numberOfRooms" value={form.numberOfRooms} onChange={handleChange} placeholder="3" /></div>
-              </label>
-              <label className="form-field">
-                <span>Piętro</span>
-                <div><input type="number" name="floor" value={form.floor} onChange={handleChange} placeholder="2" /></div>
-              </label>
-              <label className="form-field">
-                <span>Pięter w budynku</span>
-                <div><input type="number" name="totalFloors" value={form.totalFloors} onChange={handleChange} placeholder="5" /></div>
-              </label>
-            </div>
-          </section>
-
-          <section className="form-section">
-            <div className="form-section-head">
-              <span>03</span>
-              <div>
-                <h2>Lokalizacja</h2>
-                <p>Adres pomaga kupującym szybciej ocenić dopasowanie oferty.</p>
-              </div>
-            </div>
-
-            <div className="form-grid-two">
-              <label className="form-field">
-                <span>Miasto</span>
-                <div><MapPin size={18} /><input name="city" value={form.city} onChange={handleChange} required placeholder="Kraków" /></div>
-              </label>
-              <label className="form-field">
-                <span>Kod pocztowy</span>
-                <div><input name="postalCode" value={form.postalCode} onChange={handleChange} required pattern="\d{2}-\d{3}" placeholder="31-000" /></div>
-              </label>
-            </div>
-
-            <label className="form-field">
-              <span>Ulica</span>
-              <div><input name="street" value={form.street} onChange={handleChange} required placeholder="Floriańska 5" /></div>
-            </label>
-          </section>
-
-          <section className="form-section">
-            <div className="form-section-head">
-              <span>04</span>
-              <div>
-                <h2>Zdjęcia</h2>
-                <p>Pierwsze zdjęcie będzie miniaturą ogłoszenia.</p>
-              </div>
-            </div>
-
+            <Field label="Ulica"><input name="street" value={form.street} onChange={update} placeholder="Floriańska 5" /></Field>
+          </Panel>
+          <Panel title="Zdjęcia">
             <label className="upload-zone">
-              <UploadCloud size={30} />
-              <strong>Dodaj zdjęcia nieruchomości</strong>
-              <span>JPG, PNG lub WebP, maksymalnie 10 MB na plik</span>
-              <input type="file" accept="image/*" multiple onChange={handleImageChange} />
+              <div><UploadCloud size={34} /><h3>Dodaj zdjęcia nieruchomości</h3><p>JPG, PNG lub WebP. Pierwsze zdjęcie będzie miniaturą.</p></div>
+              <input type="file" accept="image/*" multiple onChange={addFiles} />
             </label>
-
-            {previews.length > 0 && (
+            {previews.length ? (
               <div className="preview-grid">
                 {previews.map((src, index) => (
-                  <div key={src} className={index === primaryIndex ? 'active' : ''}>
-                    <Image src={src} alt="" width={320} height={210} unoptimized />
-                    {index === primaryIndex && <span><Check size={13} /> Główne</span>}
-                    <button type="button" onClick={() => setPrimaryIndex(index)} className="preview-primary" title="Ustaw jako główne">
-                      <Camera size={14} />
-                    </button>
-                    <button type="button" onClick={() => removeImage(index)} className="preview-remove" title="Usuń zdjęcie">
-                      <X size={14} />
-                    </button>
+                  <div className={index === primary ? 'preview active' : 'preview'} key={src}>
+                    <Image src={src} alt="" width={320} height={220} unoptimized />
+                    <button type="button" className="primary" onClick={() => setPrimary(index)} title="Ustaw jako główne">{index === primary ? <Check size={15} /> : <Camera size={15} />}</button>
+                    <button type="button" className="remove" onClick={() => remove(index)} title="Usuń"><X size={15} /></button>
                   </div>
                 ))}
               </div>
-            )}
-          </section>
+            ) : null}
+          </Panel>
         </div>
-
-        <aside className="create-summary">
-          <h2>Publikacja</h2>
-          <p>Po zapisaniu oferta pojawi się w katalogu. Zdjęcia zostaną dodane po utworzeniu ogłoszenia.</p>
-          <div>
-            <span>Tytuł</span>
-            <strong>{form.title || 'Jeszcze bez tytułu'}</strong>
+        <aside className="panel side-summary">
+          <h2>Podsumowanie</h2>
+          <p style={{ color: 'var(--muted)', lineHeight: 1.7 }}>Oferta zostanie opublikowana po utworzeniu rekordu i wysłaniu zdjęć.</p>
+          <div className="facts" style={{ display: 'grid', margin: '22px 0' }}>
+            <span>{form.title || 'Brak tytułu'}</span>
+            <span>{form.city || 'Brak miasta'}</span>
+            <span>{files.length} zdjęć</span>
           </div>
-          <div>
-            <span>Lokalizacja</span>
-            <strong>{form.city || 'Nie podano miasta'}</strong>
-          </div>
-          <div>
-            <span>Zdjęcia</span>
-            <strong>{images.length}</strong>
-          </div>
-          <button type="submit" className="form-submit" disabled={loading}>
-            {loading ? 'Publikowanie...' : 'Opublikuj ogłoszenie'}
-          </button>
-          <button type="button" className="form-secondary" onClick={() => router.back()}>
-            Anuluj
-          </button>
+          <button className="btn-primary" style={{ width: '100%' }} disabled={loading} type="submit">{loading ? 'Publikowanie...' : 'Opublikuj'}</button>
         </aside>
       </form>
     </main>
   );
+}
+
+function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+  return <section className="panel create-card"><h2>{title}</h2>{children}</section>;
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return <label className="field"><span>{label}</span><div className="field-box">{children}</div></label>;
 }

@@ -1,103 +1,51 @@
 'use client';
 
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowRight, Eye, EyeOff, Lock, Mail, ShieldCheck } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
-import { LoginCredentials } from '@/types';
+import Link from 'next/link';
+import { Eye, EyeOff, Lock, Mail, ShieldCheck } from 'lucide-react';
+import { useState } from 'react';
+import { useAuth } from '@/lib/auth';
 
 export default function LoginPage() {
-  const { login, isLoggingIn } = useAuth();
-  const [showPassword, setShowPassword] = useState(false);
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<LoginCredentials>();
+  const { login, loading } = useAuth();
+  const [show, setShow] = useState(false);
+  const [error, setError] = useState('');
+
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError('');
+    const form = new FormData(event.currentTarget);
+    try {
+      await login({ email: String(form.get('email')), password: String(form.get('password')) });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Nie udało się zalogować');
+    }
+  }
 
   return (
     <main className="auth-page">
-      <section className="auth-panel">
-        <div className="auth-copy">
-          <Link href="/" className="auth-wordmark">InduoHouse</Link>
-          <span className="auth-kicker"><ShieldCheck size={16} /> Panel użytkownika</span>
-          <h1>Zaloguj się i wróć do swoich ofert.</h1>
-          <p>
-            Zarządzaj ogłoszeniami, sprawdzaj zapisane nieruchomości i szybciej
-            wracaj do mieszkań, które naprawdę warto obejrzeć.
-          </p>
-          <div className="auth-image-card">
-            <Image
-              src="https://images.unsplash.com/photo-1600607688969-a5bfcd646154?w=1000&q=85"
-              alt="Nowoczesne mieszkanie"
-              width={760}
-              height={520}
-              unoptimized
-            />
-          </div>
-        </div>
-
-        <div className="auth-form-card">
-          <div className="auth-form-head">
-            <span>Witaj ponownie</span>
-            <h2>Logowanie</h2>
-            <p>Wpisz dane konta, aby przejść do panelu.</p>
-          </div>
-
-          <form onSubmit={handleSubmit((data) => login(data))} className="auth-form" noValidate>
-            <label className="form-field">
-              <span>Email</span>
-              <div>
-                <Mail size={18} />
-                <input
-                  type="email"
-                  autoComplete="email"
-                  placeholder="twoj@email.pl"
-                  {...register('email', {
-                    required: 'Email jest wymagany',
-                    pattern: {
-                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                      message: 'Podaj poprawny adres email',
-                    },
-                  })}
-                />
-              </div>
-              {errors.email && <small>{errors.email.message}</small>}
-            </label>
-
-            <label className="form-field">
-              <span>Hasło</span>
-              <div>
-                <Lock size={18} />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete="current-password"
-                  placeholder="Twoje hasło"
-                  {...register('password', {
-                    required: 'Hasło jest wymagane',
-                    minLength: { value: 6, message: 'Hasło musi mieć min. 6 znaków' },
-                  })}
-                />
-                <button type="button" onClick={() => setShowPassword((value) => !value)} aria-label="Pokaż hasło">
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-              {errors.password && <small>{errors.password.message}</small>}
-            </label>
-
-            <button className="form-submit" type="submit" disabled={isLoggingIn}>
-              {isLoggingIn ? 'Logowanie...' : 'Zaloguj się'}
-              <ArrowRight size={18} />
-            </button>
+      <section className="container auth-layout">
+        <AuthStory title="Wróć do ofert, które warto zobaczyć." text="Twój panel pozwala dodawać ogłoszenia, śledzić zapisane nieruchomości i szybciej wracać do najlepszych okazji." image="https://images.unsplash.com/photo-1600566752355-35792bedcfea?w=1200&q=90" />
+        <div className="auth-card">
+          <span className="eyebrow"><ShieldCheck size={16} /> Bezpieczne logowanie</span>
+          <h1>Logowanie</h1>
+          <form className="form" onSubmit={submit}>
+            {error ? <div className="error">{error}</div> : null}
+            <Field label="Email" icon={<Mail size={18} />}><input name="email" type="email" autoComplete="email" required placeholder="twoj@email.pl" /></Field>
+            <Field label="Hasło" icon={<Lock size={18} />} action={<button type="button" onClick={() => setShow((v) => !v)}>{show ? <EyeOff size={18} /> : <Eye size={18} />}</button>}><input name="password" type={show ? 'text' : 'password'} autoComplete="current-password" required placeholder="Twoje hasło" /></Field>
+            <button className="btn-primary" type="submit" disabled={loading}>{loading ? 'Logowanie...' : 'Zaloguj się'}</button>
           </form>
-
-          <p className="auth-switch">
-            Nie masz konta? <Link href="/register">Utwórz konto</Link>
-          </p>
+          <p className="switch-text">Nie masz konta? <Link href="/register">Załóż konto</Link></p>
         </div>
       </section>
     </main>
   );
+}
+
+function AuthStory({ title, text, image }: { title: string; text: string; image: string }) {
+  return <div className="auth-story"><div className="auth-story-copy"><span className="eyebrow">InduoHouse</span><h1>{title}</h1><p>{text}</p></div><Image src={image} alt="" width={900} height={520} unoptimized /></div>;
+}
+
+function Field({ label, icon, action, children }: { label: string; icon: React.ReactNode; action?: React.ReactNode; children: React.ReactNode }) {
+  return <label className="field"><span>{label}</span><div className="field-box">{icon}{children}{action}</div></label>;
 }

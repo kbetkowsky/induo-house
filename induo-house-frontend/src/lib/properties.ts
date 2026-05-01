@@ -1,103 +1,55 @@
-import { apiClient } from './api';
-import { API_ENDPOINTS } from '@/constants';
-import { CreatePropertyDto, Property, PropertyImage, PaginatedResponse } from '@/types';
-import { PropertyListResponse } from '@/types/property';
+import { api, API_BASE } from './api';
+import {
+  CreatePropertyPayload,
+  PageResponse,
+  PropertyDetail,
+  PropertyFilters,
+  PropertyImage,
+  PropertyListItem,
+} from '@/types';
 
-export interface PropertyFilters {
-  city?: string;
-  propertyType?: string;
-  minPrice?: number;
-  maxPrice?: number;
-  transactionType?: string;
-  minArea?: number;
-  maxArea?: number;
-  bedrooms?: number;
-  page?: number;
-  size?: number;
-}
-
-export async function getProperties(
-  filters: PropertyFilters = {}
-): Promise<PaginatedResponse<PropertyListResponse>> {
+function toParams(filters: PropertyFilters = {}) {
   const params = new URLSearchParams();
-
-  if (filters.city) params.append('city', filters.city);
-  if (filters.propertyType) params.append('propertyType', filters.propertyType);
-  if (filters.minPrice !== undefined) params.append('minPrice', filters.minPrice.toString());
-  if (filters.maxPrice !== undefined) params.append('maxPrice', filters.maxPrice.toString());
-  if (filters.minArea !== undefined) params.append('minArea', filters.minArea.toString());
-  if (filters.transactionType) params.append('transactionType', filters.transactionType);
-  if (filters.maxArea !== undefined) params.append('maxArea', filters.maxArea.toString());
-  if (filters.bedrooms !== undefined) params.append('bedrooms', filters.bedrooms.toString());
-
-  params.append('page', (filters.page || 0).toString());
-  params.append('size', (filters.size || 12).toString());
-
-  const response = await apiClient.get<PaginatedResponse<PropertyListResponse>>(
-    `${API_ENDPOINTS.PROPERTIES}?${params.toString()}`
-  );
-
-  return response.data;
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value !== undefined && value !== '' && value !== null) params.set(key, String(value));
+  });
+  params.set('page', String(filters.page ?? 0));
+  params.set('size', String(filters.size ?? 12));
+  return params.toString();
 }
 
-export async function getPropertyById(id: number): Promise<Property> {
-  const response = await apiClient.get<Property>(
-    API_ENDPOINTS.PROPERTY_BY_ID(id)
-  );
-  return response.data;
+export function getProperties(filters: PropertyFilters = {}) {
+  return api<PageResponse<PropertyListItem>>(`/properties?${toParams(filters)}`);
 }
 
-export async function getMyProperties(): Promise<Property[]> {
-  const response = await apiClient.get<Property[]>(API_ENDPOINTS.MY_PROPERTIES);
-  return response.data;
+export function getProperty(id: number) {
+  return api<PropertyDetail>(`/properties/${id}`);
 }
 
-export async function createProperty(data: CreatePropertyDto): Promise<Property> {
-  const response = await apiClient.post<Property>(
-    API_ENDPOINTS.CREATE_PROPERTY,
-    data
-  );
-  return response.data;
+export function getMyProperties() {
+  return api<PageResponse<PropertyListItem>>('/properties/my?page=0&size=50');
 }
 
-export async function uploadPropertyImage(
-  propertyId: number,
-  file: File,
-  isPrimary: boolean
-): Promise<PropertyImage> {
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('isPrimary', String(isPrimary));
-
-  const response = await apiClient.post<PropertyImage>(
-    API_ENDPOINTS.UPLOAD_PROPERTY_IMAGE(propertyId),
-    formData,
-    {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    }
-  );
-
-  return response.data;
+export function createProperty(payload: CreatePropertyPayload) {
+  return api<PropertyDetail>('/properties', {
+    method: 'POST',
+    json: payload,
+  });
 }
 
-export async function updateProperty(
-  id: number,
-  data: FormData
-): Promise<Property> {
-  const response = await apiClient.put<Property>(
-    API_ENDPOINTS.UPDATE_PROPERTY(id),
-    data,
-    {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    }
-  );
-  return response.data;
+export async function uploadPropertyImage(propertyId: number, file: File, isPrimary: boolean) {
+  const form = new FormData();
+  form.append('file', file);
+  form.append('isPrimary', String(isPrimary));
+  const response = await fetch(`${API_BASE}/properties/${propertyId}/images`, {
+    method: 'POST',
+    credentials: 'include',
+    body: form,
+  });
+  if (!response.ok) throw new Error('Nie udało się wysłać zdjęcia');
+  return response.json() as Promise<PropertyImage>;
 }
 
-export async function deleteProperty(id: number): Promise<void> {
-  await apiClient.delete(API_ENDPOINTS.DELETE_PROPERTY(id));
+export function deleteProperty(id: number) {
+  return api<void>(`/properties/${id}`, { method: 'DELETE' });
 }

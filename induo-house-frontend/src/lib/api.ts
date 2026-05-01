@@ -1,38 +1,50 @@
-import axios from 'axios';
-import { API_BASE_URL } from '@/constants';
+export const API_ORIGIN = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+export const API_BASE = `${API_ORIGIN}/api`;
 
-export const apiClient = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  withCredentials: true,
-});
+type RequestOptions = RequestInit & {
+  json?: unknown;
+};
 
-apiClient.interceptors.request.use(
-  (config) => {
-    console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`);
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
+export class ApiError extends Error {
+  status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
   }
-);
+}
 
-apiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      console.log('Unauthorized - redirecting to login');
+export async function api<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const headers = new Headers(options.headers);
+  const init: RequestInit = {
+    ...options,
+    credentials: 'include',
+    headers,
+  };
 
-      const currentPath = window.location.pathname;
-      const isAuthCheck = error.config?.url?.includes('/auth/me');
+  if (options.json !== undefined) {
+    headers.set('Content-Type', 'application/json');
+    init.body = JSON.stringify(options.json);
+  }
 
-      if (!isAuthCheck && currentPath !== '/login' && currentPath !== '/register') {
-        window.location.href = '/login';
-      }
+  const response = await fetch(`${API_BASE}${path}`, init);
+
+  if (!response.ok) {
+    let message = `Request failed (${response.status})`;
+    try {
+      const body = await response.json();
+      message = body.message || body.error || message;
+    } catch {
+      // Response is not JSON.
     }
-
-    return Promise.reject(error);
+    throw new ApiError(response.status, message);
   }
-);
+
+  if (response.status === 204) return undefined as T;
+  return response.json() as Promise<T>;
+}
+
+export function assetUrl(path?: string | null) {
+  if (!path) return null;
+  return path.startsWith('http') ? path : `${API_ORIGIN}${path}`;
+}
