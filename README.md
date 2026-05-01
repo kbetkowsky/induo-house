@@ -23,14 +23,24 @@ On every push to `main`, GitHub Actions runs 49 tests (unit + integration via Te
 
 ## Getting started
 
-Requirements: Java 21+, Node.js 18+, Docker
+Requirements: Java 21+, Node.js 18+, Docker Desktop
 
 **Backend**
 
 ```bash
 cp .env.example .env
+docker compose up -d postgres
 cd induo-house
 ./mvnw spring-boot:run
+```
+
+On Windows, use:
+
+```bat
+copy .env.example .env
+docker compose up -d postgres
+cd induo-house
+mvnw.cmd spring-boot:run
 ```
 
 Swagger UI available at `http://localhost:8080/swagger-ui/index.html`
@@ -41,6 +51,13 @@ Swagger UI available at `http://localhost:8080/swagger-ui/index.html`
 cd induo-house-frontend
 npm install
 npm run dev
+```
+
+If PowerShell blocks `npm.ps1`, run npm through Command Prompt instead:
+
+```bat
+cmd /c npm install
+cmd /c npm run dev
 ```
 
 App runs at `http://localhost:3000`
